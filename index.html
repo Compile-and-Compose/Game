@@ -7,19 +7,25 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="wrap"><canvas id="game" width="960" height="600"></canvas></div>
-  <div id="hud">
-    <div class="chip" id="stats">❤ 3 | 🕷 0 | ⌚ 0:00 | Stage: Surface</div>
-    <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd> · Jump <kbd>W</kbd>/<kbd>Space</kbd> · Down <kbd>S</kbd> · Attack <kbd>J</kbd> · Dash <kbd>K</kbd> · Pause <kbd>P</kbd></div>
+  <div id="wrap">
+    <canvas id="game" width="960" height="600" aria-label="Game canvas" role="img"></canvas>
   </div>
-  <div id="overlay">
+  <div id="hud">
+    <div class="chip" id="stats">❤ 3 | ⚔ 0 | 🕷 0 | ⌚ 0:00</div>
+    <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> · Jump: <kbd>W</kbd> or <kbd>Space</kbd> · Attack: <kbd>J</kbd> · Dash: <kbd>K</kbd> · Pause: <kbd>P</kbd></div>
+  </div>
+  <div id="overlay" hidden>
     <div class="card">
-      <div class="title">Knight vs. Spiders — Planetfall</div>
-      <p>Start on the surface. Find the cave entrance (a hole in the ground). Drop in to enter a <strong>randomly generated cave platformer</strong> crawling with spider-bugs.
-      </p>
-      <p>Controls: <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>Space</kbd> jump · <kbd>S</kbd> drop/down · <kbd>J</kbd> attack · <kbd>K</kbd> dash · <kbd>P</kbd> pause</p>
-      <a class="btn" id="startBtn">Start</a>
-      <a class="btn" id="seedBtn">New Seed</a>
+      <div class="title">Knight vs. Spiders — Another Planet</div>
+      <div class="subtitle">A tiny 2D platformer. Defeat waves of spider-like bugs on an alien world. Survive, score points, and clear stages!</div>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
+        <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd></div>
+        <div class="chip">Jump <kbd>W</kbd> or <kbd>Space</kbd></div>
+        <div class="chip">Attack <kbd>J</kbd></div>
+        <div class="chip">Dash <kbd>K</kbd></div>
+        <div class="chip">Pause <kbd>P</kbd></div>
+      </div>
+      <div><a class="btn" id="startBtn">Start Game</a></div>      <div><a class="btn" id="startBtn">Start Game</a></div>
     </div>
   </div>
 
