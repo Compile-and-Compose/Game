@@ -1,21 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Knight Vs Spiders</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="game.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knight vs. Spiders — Surface & Procedural Cave</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="header">
-      <h1>Knight vs Spiders</h1>
-      <p>Move: A/D | Jump: W or Space</p>
-    </div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="footer">
-      <p>Prototype Demo – One random bouncy platform per cave</p>
+  <div id="wrap"><canvas id="game" width="960" height="600"></canvas></div>
+  <div id="hud">
+    <div class="chip" id="stats">❤ 3 | 🕷 0 | ⌚ 0:00 | Stage: Surface</div>
+    <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd> · Jump <kbd>W</kbd>/<kbd>Space</kbd> · Down <kbd>S</kbd> · Attack <kbd>J</kbd> · Dash <kbd>K</kbd> · Pause <kbd>P</kbd></div>
+  </div>
+  <div id="overlay">
+    <div class="card">
+      <div class="title">Knight vs. Spiders — Planetfall</div>
+      <p>Start on the surface. Find the cave entrance (a hole in the ground). Drop in to enter a <strong>randomly generated cave platformer</strong> crawling with spider-bugs.
+      </p>
+      <p>Controls: <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>Space</kbd> jump · <kbd>S</kbd> drop/down · <kbd>J</kbd> attack · <kbd>K</kbd> dash · <kbd>P</kbd> pause</p>
+      <a class="btn" id="startBtn">Start</a>
+      <a class="btn" id="seedBtn">New Seed</a>
     </div>
   </div>
+
+  <script src="game.js"></script>
 </body>
 </html>
