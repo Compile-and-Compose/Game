@@ -25,7 +25,7 @@ function reseed(newSeed = Date.now()) {
 // =============================
 // Game State
 // =============================
-let player, platforms, enemies, keys = {};
+let player, platforms = [], enemies = [], keys = {};
 let gameRunning = false;
 let wave = 1;
 
@@ -53,7 +53,7 @@ function generatePlatforms() {
   let numBouncy = 2 + Math.floor(rng() * 2);   // 2–3
 
   for (let i = 0; i < numPlatforms; i++) {
-    let x = rng() * (canvas.width - 100);
+    let x = rng() * (canvas.width - 120);
     let y = rng() * (canvas.height - 60);
     platforms.push({ x, y, w: 120, h: 20, type: "normal" });
   }
@@ -69,7 +69,7 @@ function generateEnemies(numEnemies) {
   enemies = [];
   for (let i = 0; i < numEnemies; i++) {
     let platform = platforms[Math.floor(rng() * platforms.length)];
-    let x = platform.x + rng() * (platform.w - 30);
+    let x = platform.x + rng() * (platform.w - 28);
     let y = platform.y - 28;
     let type = rng() < 0.5 ? "patrol" : "stationary";
 
@@ -85,12 +85,8 @@ function generateEnemies(numEnemies) {
 // =============================
 // Controls
 // =============================
-document.addEventListener("keydown", e => {
-  keys[e.code] = true;
-});
-document.addEventListener("keyup", e => {
-  keys[e.code] = false;
-});
+document.addEventListener("keydown", e => { keys[e.code] = true; });
+document.addEventListener("keyup", e => { keys[e.code] = false; });
 
 // =============================
 // Game Loop
@@ -103,43 +99,30 @@ function update() {
   if (player.vy > 8) player.vy = 8;
 
   // Movement
-  if (keys["ArrowLeft"] || keys["KeyA"]) {
-    player.vx = -player.speed;
-    player.facing = -1;
-  } else if (keys["ArrowRight"] || keys["KeyD"]) {
-    player.vx = player.speed;
-    player.facing = 1;
-  } else {
-    player.vx = 0;
-  }
+  if (keys["ArrowLeft"] || keys["KeyA"]) { player.vx = -player.speed; player.facing = -1; }
+  else if (keys["ArrowRight"] || keys["KeyD"]) { player.vx = player.speed; player.facing = 1; }
+  else { player.vx = 0; }
 
   // Jump
   if ((keys["ArrowUp"] || keys["KeyW"]) && !player.jumping) {
-    player.vy = -10;
-    player.jumping = true;
+    player.vy = -10; player.jumping = true;
   }
 
   // Dash
   if (keys["ShiftLeft"] && player.canDash) {
-    player.dashTime = 10;
-    player.canDash = false;
+    player.dashTime = 10; player.canDash = false;
   }
   if (player.dashTime > 0) {
-    player.vx = player.facing * 12;
-    player.vy = 0;
-    player.dashTime--;
+    player.vx = player.facing * 12; player.vy = 0; player.dashTime--;
   }
 
   // Attack
   if (keys["Space"] && !player.attacking) {
-    player.attacking = true;
-    player.attackTime = 10;
+    player.attacking = true; player.attackTime = 10;
   }
   if (player.attacking) {
     player.attackTime--;
-    if (player.attackTime <= 0) {
-      player.attacking = false;
-    }
+    if (player.attackTime <= 0) player.attacking = false;
   }
 
   // Apply velocity
@@ -181,8 +164,8 @@ function update() {
 
     // Attack collision
     if (player.attacking) {
-      let rangeX = player.x + (player.facing === 1 ? player.w : -20);
-      let swordBox = { x: rangeX, y: player.y, w: 20, h: player.h };
+      let swordX = player.x + (player.facing === 1 ? player.w : -20);
+      let swordBox = { x: swordX, y: player.y, w: 20, h: player.h };
       if (swordBox.x < e.x + e.w &&
           swordBox.x + swordBox.w > e.x &&
           swordBox.y < e.y + e.h &&
@@ -197,7 +180,7 @@ function update() {
     wave++;
     reseed(rngSeed + 1);
     generatePlatforms();
-    generateEnemies(3 + Math.floor(rng() * 4) + wave); // scale difficulty
+    generateEnemies(3 + Math.floor(rng() * 4) + wave);
   }
 }
 
@@ -250,20 +233,14 @@ function loop() {
 // Buttons
 // =============================
 document.getElementById("startBtn").addEventListener("click", () => {
-  reseed();
+  const seedVal = parseInt(document.getElementById("seedInput").value) || Date.now();
+  reseed(seedVal);
   player = makePlayer();
   generatePlatforms();
   generateEnemies(4);
   wave = 1;
   gameRunning = true;
   document.getElementById("overlay").style.display = "none";
-});
-
-document.getElementById("seedBtn").addEventListener("click", () => {
-  reseed();
-  generatePlatforms();
-  generateEnemies(4);
-  wave = 1;
 });
 
 // Start loop
