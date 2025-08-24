@@ -1,3 +1,87 @@
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// =============================
+// RNG with Seeds
+// =============================
+let rngSeed = Date.now();
+let rng = mulberry32(rngSeed);
+
+function mulberry32(a) {
+  return function () {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function reseed(newSeed = Date.now()) {
+  rngSeed = newSeed;
+  rng = mulberry32(rngSeed);
+  console.log("New Seed:", rngSeed);
+}
+
+// =============================
+// Game State
+// =============================
+let player, platforms = [], enemies = [], keys = {};
+let gameRunning = false;
+let wave = 1;
+
+// =============================
+// Entities
+// =============================
+function makePlayer() {
+  return {
+    x: 100, y: 100,
+    w: 32, h: 32,
+    vx: 0, vy: 0,
+    speed: 3,
+    jumping: false,
+    dashTime: 0,
+    canDash: true,
+    facing: 1, // 1 = right, -1 = left
+    attacking: false,
+    attackTime: 0
+  };
+}
+
+function generatePlatforms() {
+  platforms = [];
+  let numPlatforms = 6 + Math.floor(rng() * 5); // 6–10
+  let numBouncy = 2 + Math.floor(rng() * 2);   // 2–3
+
+  for (let i = 0; i < numPlatforms; i++) {
+    let x = rng() * (canvas.width - 120);
+    let y = rng() * (canvas.height - 60);
+    platforms.push({ x, y, w: 120, h: 20, type: "normal" });
+  }
+
+  for (let i = 0; i < numBouncy; i++) {
+    let x = rng() * (canvas.width - 100);
+    let y = rng() * (canvas.height - 60);
+    platforms.push({ x, y, w: 100, h: 20, type: "bouncy" });
+  }
+}
+
+function generateEnemies(numEnemies) {
+  enemies = [];
+  for (let i = 0; i < numEnemies; i++) {
+    let platform = platforms[Math.floor(rng() * platforms.length)];
+    let x = platform.x + rng() * (platform.w - 28);
+    let y = platform.y - 28;
+    let type = rng() < 0.5 ? "patrol" : "stationary";
+
+    enemies.push({
+      x, y, w: 28, h: 28,
+      vx: type === "patrol" ? (rng() < 0.5 ? -1 : 1) * 1.5 : 0,
+      type,
+      alive: true
+    });
+  }
+}
+
 // =============================
 // Controls
 // =============================
@@ -53,7 +137,7 @@ function update() {
     player.canDash = true;
   }
 
-  // Platforms collision (fixed)
+  // Platforms collision
   for (let p of platforms) {
     let playerBottom = player.y + player.h;
     let playerTop = player.y;
@@ -77,7 +161,7 @@ function update() {
     }
   }
 
-  // Decrease attack timer
+  // Attack timer
   if (player.attacking) {
     player.attackTime--;
     if (player.attackTime <= 0) player.attacking = false;
@@ -115,3 +199,65 @@ function update() {
     generateEnemies(3 + Math.floor(rng() * 4) + wave);
   }
 }
+
+// =============================
+// Draw
+// =============================
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Player
+  ctx.fillStyle = "#4ade80";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Sword swing
+  if (player.attacking) {
+    ctx.fillStyle = "#ff6b6b";
+    let swordX = player.x + (player.facing === 1 ? player.w : -20);
+    ctx.fillRect(swordX, player.y, 20, player.h);
+  }
+
+  // Platforms
+  for (let p of platforms) {
+    ctx.fillStyle = p.type === "bouncy" ? "#9b5de5" : "#3b2a55";
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+  }
+
+  // Enemies
+  for (let e of enemies) {
+    if (!e.alive) continue;
+    ctx.fillStyle = e.type === "patrol" ? "#ffb703" : "#fb8500";
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+  }
+
+  // Wave text
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px Arial";
+  ctx.fillText("Wave: " + wave, 10, 25);
+}
+
+// =============================
+// Main Loop
+// =============================
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// =============================
+// Buttons
+// =============================
+document.getElementById("startBtn").addEventListener("click", () => {
+  const seedVal = parseInt(document.getElementById("seedInput").value) || Date.now();
+  reseed(seedVal);
+  player = makePlayer();
+  generatePlatforms();
+  generateEnemies(4);
+  wave = 1;
+  gameRunning = true;
+  document.getElementById("overlay").style.display = "none";
+});
+
+// Start loop
+loop();
