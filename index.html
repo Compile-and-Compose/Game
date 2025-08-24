@@ -1,250 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Knight vs Bugs</title>
-  <style>
-    :root {
-      --bg1: #0b0f25;  /* deep space */
-      --bg2: #1a0f2e;  /* nebula purple */
-      --accent: #9b5de5; /* purple ground tint */
-      --ui: #e6e6e6;
-      --danger: #ff6b6b;
-      --ok: #4ade80;
-      --platform: #3b2a55;
-      --planet: #ffb703;
-    }
+<meta charset="UTF-8">
+<title>Knight vs Bugs</title>
+<style>
+:root {
+  --bg1: #0b0f25;  
+  --bg2: #1a0f2e;  
+  --accent: #9b5de5; 
+  --ui: #e6e6e6;
+  --danger: #ff6b6b;
+  --ok: #4ade80;
+  --platform: #3b2a55;
+  --planet: #ffb703;
+}
 
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: radial-gradient(1200px 800px at 70% 10%, #1d1740 0%, var(--bg1) 45%, #090c1a 100%);
-      color: var(--ui);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      user-select: none;
-      -webkit-user-select: none;
-      overflow: hidden;
-    }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(1200px 800px at 70% 10%, #1d1740 0%, var(--bg1) 45%, #090c1a 100%);
+  color: var(--ui);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial;
+  user-select: none;
+  overflow: hidden;
+}
 
-    #wrap {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      gap: 8px;
-    }
+#wrap { position: fixed; inset: 0; display: grid; place-items: center; }
 
-    canvas {
-      width: min(100vw, 1000px);
-      height: min(70vh, 620px);
-      max-width: 1000px;
-      aspect-ratio: 16/10;
-      background: linear-gradient(180deg, var(--bg2) 0%, #110a1e 60%, #0c0817 100%);
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
+canvas {
+  width: min(100vw, 1000px);
+  height: min(70vh, 620px);
+  background: linear-gradient(180deg, var(--bg2) 0%, #110a1e 60%, #0c0817 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
+  image-rendering: pixelated;
+}
 
-    #hud {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      top: 10px;
-      width: min(100vw, 1000px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 14px;
-      gap: 8px;
-      box-sizing: border-box;
-      pointer-events: none;
-    }
-
-    .chip {
-      background: rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 999px;
-      padding: 6px 12px;
-      display: inline-flex;
-      gap: 10px;
-      align-items: center;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      font-weight: 600;
-      letter-spacing: .2px;
-    }
-
-    #controls { pointer-events: auto; }
-
-    #overlay {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(600px 400px at 50% 30%, rgba(0,0,0,.12), rgba(0,0,0,.7));
-      color: var(--ui);
-      text-align: center;
-    }
-
-    .card {
-      max-width: 760px;
-      margin: 10px;
-      background: rgba(10, 9, 20, .75);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-    }
-
-    .title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
-    .subtitle { opacity: .9; margin-bottom: 12px; }
-    kbd { background: #111423; border: 1px solid #2a2e49; border-bottom-color: #1b1f35; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
-    .btn {
-      display: inline-block; margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
-      background: linear-gradient(180deg, #222344, #171937);
-      color: #fff; font-weight: 800; letter-spacing: .4px; cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.06);
-    }
-    .btn:active { transform: translateY(1px); }
-
-    @media (max-width: 720px) {
-      canvas { height: 62vh; }
-      .title { font-size: 22px; }
-    }
-  </style>
+#hud {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  top: 10px; width: min(100vw, 1000px);
+  display: flex; justify-content: space-between; padding: 8px 14px;
+  pointer-events: none;
+}
+.chip {
+  background: rgba(0,0,0,.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+  display: inline-flex; gap: 10px; align-items: center;
+  backdrop-filter: blur(6px);
+  font-weight: 600;
+}
+#overlay {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  background: radial-gradient(600px 400px at 50% 30%, rgba(0,0,0,.12), rgba(0,0,0,.7));
+}
+.card {
+  max-width: 760px; padding: 18px 20px;
+  background: rgba(10,9,20,.75);
+  border-radius: 16px;
+}
+.title { font-size: 26px; font-weight: 800; }
+.btn {
+  display: inline-block; margin-top: 10px; padding: 10px 16px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, #222344, #171937);
+  color: #fff; font-weight: 800; cursor: pointer;
+}
+</style>
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="game" width="960" height="600"></canvas>
-    <div id="hud">
-      <div class="chip">❤️ <span id="health">3</span></div>
-      <div class="chip">⚔️ <span id="score">0</span></div>
-    </div>
-    <div id="overlay">
-      <div class="card">
-        <div class="title">Knight vs Bugs</div>
-        <div class="subtitle">Defeat the bugs and survive!</div>
-        <button id="startBtn" class="btn">Start Game</button>
-      </div>
+<div id="wrap">
+  <canvas id="game" width="960" height="600"></canvas>
+  <div id="hud">
+    <div class="chip">❤️ <span id="hp">3</span></div>
+    <div class="chip">⚔️ <span id="score">0</span></div>
+  </div>
+  <div id="overlay">
+    <div class="card">
+      <div class="title">Knight vs Bugs</div>
+      <div class="subtitle">Enter a seed for random world generation:</div>
+      <input id="seedInput" value="12345">
+      <div><button id="startBtn" class="btn">Start Game</button></div>
     </div>
   </div>
+</div>
+<script>
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
+const W=canvas.width,H=canvas.height;
+const GRAVITY=0.6, JUMP=-12, SPEED=4, DASH_SPEED=12, DASH_TIME=10;
 
-  <script>
-    const canvas=document.getElementById('game');
-    const ctx=canvas.getContext('2d');
-    const W=canvas.width, H=canvas.height;
-    const gravity=0.6, friction=0.8, JUMP=-12, SPEED=4;
+function aabb(a,b){return a.x<a.x+a.w && a.x+a.w>b.x && a.y<a.y+a.h && a.y+a.h>b.y;}
+function chance(r){return Math.random()<r;}
 
-    // state
-    let state={
-      running:false,
-      score:0,
-      player:null,
-      enemies:[],
-      platforms:[],
-      keys:{},
-      health:3
-    };
+// --- Seeded RNG ---
+function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}}
+let rng=Math.random;
 
-    // helpers
-    function rectsCollide(r1,r2){
-      return r1.x<r2.x+r2.w && r1.x+r1.w>r2.x && r1.y<r2.y+r2.h && r1.y+r1.h>r2.y;
-    }
+// --- State ---
+let state={player:null, platforms:[], enemies:[], bullets:[], score:0, hp:3, seed:12345, overlay:true};
 
-    class Player{
-      constructor(){
-        this.x=100;this.y=H-150;
-        this.w=32;this.h=48;
-        this.vx=0;this.vy=0;
-        this.onGround=false;
-      }
-      get rect(){return {x:this.x,y:this.y,w:this.w,h:this.h}}
-      update(plats){
-        this.vy+=gravity;
-        this.x+=this.vx;
-        this.y+=this.vy;
-        this.onGround=false;
-        for(const p of plats){
-          if(rectsCollide(this.rect,p)){
-            if(this.vy>0){
-              this.y=p.y-this.h;
-              if(p.bouncy){
-                this.vy=JUMP*1.2; // bounce
-              }else{
-                this.vy=0;
-                this.onGround=true;
-              }
-            } else if(this.vy<0){
-              this.y=p.y+p.h;
-              this.vy=0;
-            }
-          }
-        }
-        if(this.x<0) this.x=0;
-        if(this.x+this.w>W) this.x=W-this.w;
-        if(this.y+this.h>H){
-          this.y=H-this.h;this.vy=0;this.onGround=true;
-        }
-      }
-      draw(){
-        ctx.fillStyle="white";
-        ctx.fillRect(this.x,this.y,this.w,this.h);
-      }
-    }
+// --- Player ---
+class Player{
+  constructor(){this.x=100;this.y=H-120;this.w=28;this.h=40;this.vx=0;this.vy=0;this.onGround=false;this.dashTime=0;}
+  get rect(){return{x:this.x,y:this.y,w:this.w,h:this.h};}
+  update(plats){
+    this.vy+=GRAVITY;
+    if(keys["ArrowLeft"]||keys["a"])this.vx=-SPEED;
+    else if(keys["ArrowRight"]||keys["d"])this.vx=SPEED;
+    else this.vx=0;
+    if((keys["ArrowUp"]||keys["w"]||keys[" "])&&this.onGround){this.vy=JUMP;this.onGround=false;}
+    if(keys["k"]&&!this.dashTime){this.dashTime=DASH_TIME;this.vx=(this.vx>=0?DASH_SPEED:-DASH_SPEED);}
+    if(this.dashTime>0){this.dashTime--;if(this.dashTime==0)this.vx=0;}
 
-    function drawPlatforms(){
-      for(const p of state.platforms){
-        if(p.bouncy){
-          ctx.fillStyle='#9b5de5';
-          ctx.fillRect(p.x,p.y,p.w,p.h);
-          ctx.fillStyle='rgba(255,255,255,0.4)';
-          ctx.fillRect(p.x,p.y,p.w,3);
-        } else {
-          ctx.fillStyle='#3b2a55';
-          ctx.fillRect(p.x,p.y,p.w,p.h);
-          ctx.fillStyle='rgba(255,255,255,0.1)';
-          ctx.fillRect(p.x,p.y,p.w,3);
-        }
-      }
-    }
+    this.x+=this.vx;this.y+=this.vy;this.onGround=false;
+    for(const p of plats){if(aabb(this.rect,p)){if(this.vy>0){this.y=p.y-this.h;if(p.bouncy){this.vy=JUMP*1.3;}else{this.vy=0;this.onGround=true;}}else{this.y=p.y+p.h;this.vy=0;}}}
+    this.x=Math.max(0,Math.min(W-this.w,this.x));this.y=Math.min(H-this.h,this.y);
+  }
+  draw(){ctx.fillStyle="#fff";ctx.fillRect(this.x,this.y,this.w,this.h);}
+}
 
-    function loop(){
-      if(!state.running) return;
-      ctx.clearRect(0,0,W,H);
-      state.player.vx=0;
-      if(state.keys["ArrowLeft"]) state.player.vx=-SPEED;
-      if(state.keys["ArrowRight"]) state.player.vx=SPEED;
-      if(state.keys["ArrowUp"] && state.player.onGround) state.player.vy=JUMP;
-      state.player.update(state.platforms);
-      drawPlatforms();
-      state.player.draw();
-      requestAnimationFrame(loop);
-    }
+// --- Enemy ---
+class Enemy{
+  constructor(x,y){this.x=x;this.y=y-20;this.w=28;this.h=28;this.vx=1;}
+  get rect(){return{x:this.x,y:this.y,w:this.w,h:this.h};}
+  update(plats){
+    this.y+=GRAVITY;this.x+=this.vx;
+    for(const p of plats){if(aabb(this.rect,p)){if(this.y+this.h<=p.y+10){this.y=p.y-this.h;this.vx*=-1;}}}
+  }
+  draw(){ctx.fillStyle="red";ctx.fillRect(this.x,this.y,this.w,this.h);}
+}
 
-    // start game
-    function startGame(){
-      state.running=true;
-      state.score=0;
-      state.health=3;
-      state.player=new Player();
-      state.platforms=[
-        {x:0,y:H-20,w:W,h:20},
-        {x:200,y:H-100,w:100,h:20},
-        {x:400,y:H-140,w:60,h:18,bouncy:true} // jump pad
-      ];
-      document.getElementById("overlay").style.display="none";
-      loop();
-    }
+// --- Attack ---
+function playerAttack(){
+  const sword={x:state.player.x+(state.player.vx>=0?state.player.w: -20),y:state.player.y,w:20,h:20};
+  state.enemies=state.enemies.filter(e=>!aabb(sword,e.rect));
+}
 
-    // input
-    window.addEventListener("keydown",e=>{state.keys[e.key]=true;});
-    window.addEventListener("keyup",e=>{state.keys[e.key]=false;});
+// --- World Building ---
+function buildWorld(seed){
+  rng=mulberry32(seed);
+  state.platforms=[];state.enemies=[];
+  for(let i=0;i<12;i++){
+    let x=rng()*(W-100),y=H-80-i*40,w=120,h=18;
+    let p={x,y,w,h,bouncy:chance(0.1)};
+    state.platforms.push(p);
+    if(chance(0.4))state.enemies.push(new Enemy(x+30,y));
+  }
+  state.platforms.push({x:0,y:H-40,w:W,h:40});
+}
 
-    // hook start button AFTER DOM loaded
-    window.addEventListener("DOMContentLoaded",()=>{
-      document.getElementById("startBtn").addEventListener("click",startGame);
-    });
-  </script>
+// --- Input ---
+let keys={};
+window.addEventListener("keydown",e=>{
+  keys[e.key]=true;
+  if(e.key==="j"||e.key==="z")playerAttack();
+});
+window.addEventListener("keyup",e=>keys[e.key]=false);
+
+// --- Main Loop ---
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  state.player.update(state.platforms);
+  state.player.draw();
+  for(const p of state.platforms){ctx.fillStyle=p.bouncy?"#9b5de5":"#3b2a55";ctx.fillRect(p.x,p.y,p.w,p.h);}
+  for(const e of state.enemies){e.update(state.platforms);e.draw();if(aabb(state.player.rect,e.rect)){state.hp--;if(state.hp<=0)gameOver();}}
+  document.getElementById("hp").textContent=state.hp;
+  document.getElementById("score").textContent=state.score;
+  if(!state.overlay)requestAnimationFrame(loop);
+}
+
+// --- Overlay / Start ---
+function startGame(){
+  const seedVal=parseInt(document.getElementById("seedInput").value)||12345;
+  state.seed=seedVal;state.overlay=false;state.hp=3;state.score=0;
+  state.player=new Player();
+  buildWorld(seedVal);
+  document.getElementById("overlay").style.display="none";
+  loop();
+}
+function gameOver(){state.overlay=true;document.getElementById("overlay").style.display="grid";}
+
+// Button
+document.getElementById("startBtn").onclick=startGame;
+</script>
 </body>
 </html>
