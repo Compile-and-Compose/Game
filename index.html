@@ -81,7 +81,10 @@ canvas {
       <div class="title">Knight vs Bugs</div>
       <div class="subtitle">Enter a seed for random world generation:</div>
       <input id="seedInput" value="12345">
-      <div><button id="startBtn" class="btn">Start Game</button></div>
+      <div>
+        <button id="startBtn" class="btn">Start Game</button>
+        <button id="seedBtn" class="btn">Change Seed</button> <!-- NEW -->
+      </div>
     </div>
   </div>
 </div>
@@ -90,15 +93,15 @@ const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
 const GRAVITY=0.6, JUMP=-12, SPEED=4, DASH_SPEED=12, DASH_TIME=10;
 
-function aabb(a,b){return a.x<a.x+a.w && a.x+a.w>b.x && a.y<a.y+a.h && a.y+a.h>b.y;}
-function chance(r){return Math.random()<r;}
+function aabb(a,b){return a.x<b.x+b.w && a.x+a.w>b.x && a.y<a.y+b.h && a.y+a.h>b.y;}
+function chance(r){return rng()<r;} // now uses seeded rng
 
 // --- Seeded RNG ---
 function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}}
 let rng=Math.random;
 
 // --- State ---
-let state={player:null, platforms:[], enemies:[], bullets:[], score:0, hp:3, seed:12345, overlay:true};
+let state={player:null, platforms:[], enemies:[], score:0, hp:3, seed:12345, overlay:true};
 
 // --- Player ---
 class Player{
@@ -122,11 +125,11 @@ class Player{
 
 // --- Enemy ---
 class Enemy{
-  constructor(x,y){this.x=x;this.y=y-20;this.w=28;this.h=28;this.vx=1;}
+  constructor(x,y){this.x=x;this.y=y-20;this.w=28;this.h=28;this.vx=rng()<0.5?-1:1;}
   get rect(){return{x:this.x,y:this.y,w:this.w,h:this.h};}
   update(plats){
     this.y+=GRAVITY;this.x+=this.vx;
-    for(const p of plats){if(aabb(this.rect,p)){if(this.y+this.h<=p.y+10){this.y=p.y-this.h;this.vx*=-1;}}}
+    for(const p of plats){if(aabb(this.rect,p)){if(this.y+this.h<=p.y+10){this.y=p.y-this.h;this.vy=0;this.vx*=-1;}}}
   }
   draw(){ctx.fillStyle="red";ctx.fillRect(this.x,this.y,this.w,this.h);}
 }
@@ -134,20 +137,27 @@ class Enemy{
 // --- Attack ---
 function playerAttack(){
   const sword={x:state.player.x+(state.player.vx>=0?state.player.w: -20),y:state.player.y,w:20,h:20};
+  const before=state.enemies.length;
   state.enemies=state.enemies.filter(e=>!aabb(sword,e.rect));
+  state.score += before - state.enemies.length;
 }
 
 // --- World Building ---
 function buildWorld(seed){
   rng=mulberry32(seed);
   state.platforms=[];state.enemies=[];
-  for(let i=0;i<12;i++){
-    let x=rng()*(W-100),y=H-80-i*40,w=120,h=18;
-    let p={x,y,w,h,bouncy:chance(0.1)};
-    state.platforms.push(p);
-    if(chance(0.4))state.enemies.push(new Enemy(x+30,y));
+  let numPlatforms=6+Math.floor(rng()*5); // 6–10 normal
+  let numBouncy=2+Math.floor(rng()*2);   // 2–3 bouncy
+  for(let i=0;i<numPlatforms;i++){
+    let x=rng()*(W-120),y=H-100-rng()*300,w=120,h=18;
+    state.platforms.push({x,y,w,h,bouncy:false});
+    if(rng()<0.4)state.enemies.push(new Enemy(x+30,y));
   }
-  state.platforms.push({x:0,y:H-40,w:W,h:40});
+  for(let i=0;i<numBouncy;i++){
+    let x=rng()*(W-100),y=H-100-rng()*300;
+    state.platforms.push({x,y,w:100,h:18,bouncy:true});
+  }
+  state.platforms.push({x:0,y:H-40,w:W,h:40}); // ground
 }
 
 // --- Input ---
@@ -172,7 +182,7 @@ function loop(){
 
 // --- Overlay / Start ---
 function startGame(){
-  const seedVal=parseInt(document.getElementById("seedInput").value)||12345;
+  const seedVal=parseInt(document.getElementById("seedInput").value)||Date.now();
   state.seed=seedVal;state.overlay=false;state.hp=3;state.score=0;
   state.player=new Player();
   buildWorld(seedVal);
@@ -181,8 +191,14 @@ function startGame(){
 }
 function gameOver(){state.overlay=true;document.getElementById("overlay").style.display="grid";}
 
-// Button
+// Buttons
 document.getElementById("startBtn").onclick=startGame;
+document.getElementById("seedBtn").onclick=()=>{ // reseed
+  const newSeed=Date.now();
+  document.getElementById("seedInput").value=newSeed;
+  state.seed=newSeed;
+  if(!state.overlay){buildWorld(newSeed);}
+};
 </script>
 </body>
 </html>
