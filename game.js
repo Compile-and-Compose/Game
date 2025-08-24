@@ -94,7 +94,8 @@ document.addEventListener("keyup", e => { keys[e.code] = false; });
 function update() {
   if (!gameRunning) return;
 
-  let prevY = player.y; // Store previous y for collision checks
+  // Store previous Y for collision calculation
+  let prevY = player.y;
 
   // Gravity
   player.vy += 0.5;
@@ -118,8 +119,8 @@ function update() {
     player.vx = player.facing * 12; player.vy = 0; player.dashTime--;
   }
 
-  // Attack
-  if (keys["KeyZ"] && !player.attacking) { // Attack button is Z
+  // Attack with Z
+  if (keys["KeyZ"] && !player.attacking) {
     player.attacking = true; player.attackTime = 10;
   }
   if (player.attacking) {
@@ -131,7 +132,7 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  // Floor
+  // Floor collision
   if (player.y + player.h > canvas.height) {
     player.y = canvas.height - player.h;
     player.vy = 0;
@@ -139,29 +140,27 @@ function update() {
     player.canDash = true;
   }
 
-  // =============================
-  // Platform collision (fixed)
-  // =============================
+  // ===========================
+  // Platform collisions (fixed)
+  // ===========================
   for (let p of platforms) {
     let playerLeft = player.x;
     let playerRight = player.x + player.w;
     let playerTop = player.y;
     let playerBottom = player.y + player.h;
-
     let prevTop = prevY;
     let prevBottom = prevY + player.h;
 
+    // Horizontal overlap check
     if (playerRight > p.x && playerLeft < p.x + p.w) {
-
-      // Landing on top
+      // Landing on top (falling)
       if (player.vy >= 0 && prevBottom <= p.y && playerBottom > p.y) {
         player.y = p.y - player.h;
         player.vy = p.type === "bouncy" ? -15 : 0;
         player.jumping = false;
         player.canDash = true;
       }
-
-      // Hitting head from below
+      // Hitting head from below (rising)
       else if (player.vy < 0 && prevTop >= p.y + p.h && playerTop < p.y + p.h) {
         player.y = p.y + p.h;
         player.vy = 0;
