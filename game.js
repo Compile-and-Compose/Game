@@ -5,14 +5,12 @@
 // --- constants ---
 const W = 1000, H = 620;
 const G = 0.8; // gravity
-const FRICTION = 0.8;
 const JUMP = -16;
 
 // --- util ---
-function clamp(v,min,max){ return v<min?min:v>max?max:v; }
 function rand(n){ return Math.floor(Math.random()*n); }
 function chance(p){ return Math.random()<p; }
-function aabb(a,b){ return a.x<a.x+a.w && a.x+a.w>b.x && a.y<a.y+a.h && a.y+a.h>b.y; }
+function aabb(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
 
 // --- state ---
 let state = {
@@ -39,18 +37,15 @@ class Player {
     this.onGround=false;
     for(const p of plats){
       if(aabb(this.rect(),p)){
-        if(this.vy>0){ // falling onto platform
+        if(this.vy>0){ // falling
           this.y=p.y-this.h;
           if(p.bouncy){
-            this.vy = JUMP*1.2; // bounce!
-            this.onGround = false;
+            this.vy = JUMP*1.2; // bounce higher
+            this.onGround=false;
           } else {
             this.vy=0;
             this.onGround=true;
           }
-        } else {
-          this.y=p.y+p.h;
-          this.vy=0;
         }
       }
     }
@@ -92,7 +87,7 @@ function buildSurface(){
   state.platforms = [
     {x:0,y:H-20,w:W,h:20},  // ground
     {x:200,y:H-120,w:120,h:20}, // regular
-    {x:400,y:H-140,w:80,h:18,bouncy:true}, // jump pad!
+    {x:400,y:H-140,w:80,h:18,bouncy:true}, // jump pad
   ];
 }
 
