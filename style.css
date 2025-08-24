@@ -1,108 +1,108 @@
 :root {
-      --bg1: #0b0f25;  /* deep space */
-      --bg2: #1a0f2e;  /* nebula purple */
-      --accent: #9b5de5; /* purple ground tint */
-      --ui: #e6e6e6;
-      --danger: #ff6b6b;
-      --ok: #4ade80;
-      --platform: #3b2a55;
-      --planet: #ffb703;
-    }
+  --bg1: #0b0f25;  /* deep space */
+  --bg2: #1a0f2e;  /* nebula purple */
+  --accent: #9b5de5; /* purple ground tint */
+  --ui: #e6e6e6;
+  --danger: #ff6b6b;
+  --ok: #4ade80;
+  --platform: #3b2a55;
+  --planet: #ffb703;
+}
 
-    html, body {
-      margin: 0;
-      height: 100%;
-      background: radial-gradient(1200px 800px at 70% 10%, #1d1740 0%, var(--bg1) 45%, #090c1a 100%);
-      color: var(--ui);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      user-select: none;
-      -webkit-user-select: none;
-      overflow: hidden;
-    }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(1200px 800px at 70% 10%, #1d1740 0%, var(--bg1) 45%, #090c1a 100%);
+  color: var(--ui);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
 
-    #wrap {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      gap: 8px;
-    }
+#wrap {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+}
 
-    canvas {
-      width: min(100vw, 1000px);
-      height: min(70vh, 620px);
-      max-width: 1000px;
-      aspect-ratio: 16/10;
-      background: linear-gradient(180deg, var(--bg2) 0%, #110a1e 60%, #0c0817 100%);
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
+canvas {
+  width: min(100vw, 1000px);
+  height: min(70vh, 620px);
+  max-width: 1000px;
+  aspect-ratio: 16/10;
+  background: linear-gradient(180deg, var(--bg2) 0%, #110a1e 60%, #0c0817 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
 
-    #hud {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      top: 10px;
-      width: min(100vw, 1000px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 14px;
-      gap: 8px;
-      box-sizing: border-box;
-      pointer-events: none;
-    }
+#hud {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px;
+  width: min(100vw, 1000px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  gap: 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
 
-    .chip {
-      background: rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 999px;
-      padding: 6px 12px;
-      display: inline-flex;
-      gap: 10px;
-      align-items: center;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      font-weight: 600;
-      letter-spacing: .2px;
-    }
+.chip {
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px;
+  padding: 6px 12px;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-weight: 600;
+  letter-spacing: .2px;
+}
 
-    #controls { pointer-events: auto; }
+#controls { pointer-events: auto; }
 
-    #overlay {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(600px 400px at 50% 30%, rgba(0,0,0,.12), rgba(0,0,0,.7));
-      color: var(--ui);
-      text-align: center;
-    }
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(600px 400px at 50% 30%, rgba(0,0,0,.12), rgba(0,0,0,.7));
+  color: var(--ui);
+  text-align: center;
+}
 
-    .card {
-      max-width: 760px;
-      margin: 10px;
-      background: rgba(10, 9, 20, .75);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-    }
+.card {
+  max-width: 760px;
+  margin: 10px;
+  background: rgba(10, 9, 20, .75);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
+}
 
-    .title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
-    .subtitle { opacity: .9; margin-bottom: 12px; }
-    kbd { background: #111423; border: 1px solid #2a2e49; border-bottom-color: #1b1f35; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
-    .btn {
-      display: inline-block; margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
-      background: linear-gradient(180deg, #222344, #171937);
-      color: #fff; font-weight: 800; letter-spacing: .4px; cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.06);
-    }
-    .btn:active { transform: translateY(1px); }
+.title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+.subtitle { opacity: .9; margin-bottom: 12px; }
+kbd { background: #111423; border: 1px solid #2a2e49; border-bottom-color: #1b1f35; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+.btn {
+  display: inline-block; margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, #222344, #171937);
+  color: #fff; font-weight: 800; letter-spacing: .4px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.btn:active { transform: translateY(1px); }
 
-    @media (max-width: 720px) {
-      canvas { height: 62vh; }
-      .title { font-size: 22px; }
-    }
+@media (max-width: 720px) {
+  canvas { height: 62vh; }
+  .title { font-size: 22px; }
+}
