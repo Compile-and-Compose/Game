@@ -94,7 +94,8 @@ document.addEventListener("keyup", e => { keys[e.code] = false; });
 function update() {
   if (!gameRunning) return;
 
-  // Store previous Y position for collision
+  // Store previous position for collision
+  let prevX = player.x;
   let prevY = player.y;
 
   // Gravity
@@ -129,21 +130,18 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  // Floor collision
-  if (player.y + player.h > canvas.height) {
-    player.y = canvas.height - player.h;
-    player.vy = 0;
-    player.jumping = false;
-    player.canDash = true;
-  }
-
-  // Platforms collision
+  // Platform collision (robust)
   for (let p of platforms) {
-    let playerBottom = player.y + player.h;
+    let playerLeft = player.x;
+    let playerRight = player.x + player.w;
     let playerTop = player.y;
-    let prevBottom = prevY + player.h;
+    let playerBottom = player.y + player.h;
 
-    if (player.x < p.x + p.w && player.x + player.w > p.x) {
+    let prevBottom = prevY + player.h;
+    let prevTop = prevY;
+
+    // Horizontal overlap
+    if (playerRight > p.x && playerLeft < p.x + p.w) {
 
       // Landing on top
       if (prevBottom <= p.y && playerBottom > p.y && player.vy >= 0) {
@@ -154,11 +152,19 @@ function update() {
       }
 
       // Hitting head from below
-      else if (prevBottom >= p.y + p.h && playerTop < p.y + p.h && player.vy < 0) {
+      else if (prevTop >= p.y + p.h && playerTop < p.y + p.h && player.vy < 0) {
         player.y = p.y + p.h;
         player.vy = 0;
       }
     }
+  }
+
+  // Floor collision
+  if (player.y + player.h > canvas.height) {
+    player.y = canvas.height - player.h;
+    player.vy = 0;
+    player.jumping = false;
+    player.canDash = true;
   }
 
   // Attack timer
