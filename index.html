@@ -1,25 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Knight vs Bugs</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg1: #0b0f25;  /* deep space */
+      --bg2: #1a0f2e;  /* nebula purple */
+      --accent: #9b5de5; /* purple ground tint */
+      --ui: #e6e6e6;
+      --danger: #ff6b6b;
+      --ok: #4ade80;
+      --platform: #3b2a55;
+      --planet: #ffb703;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(1200px 800px at 70% 10%, #1d1740 0%, var(--bg1) 45%, #090c1a 100%);
+      color: var(--ui);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+
+    #wrap {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+    }
+
+    canvas {
+      width: min(100vw, 1000px);
+      height: min(70vh, 620px);
+      max-width: 1000px;
+      aspect-ratio: 16/10;
+      background: linear-gradient(180deg, var(--bg2) 0%, #110a1e 60%, #0c0817 100%);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    #hud {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 10px;
+      width: min(100vw, 1000px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      gap: 8px;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+
+    .chip {
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 6px 12px;
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+
+    #controls { pointer-events: auto; }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(600px 400px at 50% 30%, rgba(0,0,0,.12), rgba(0,0,0,.7));
+      color: var(--ui);
+      text-align: center;
+    }
+
+    .card {
+      max-width: 760px;
+      margin: 10px;
+      background: rgba(10, 9, 20, .75);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    .title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+    .subtitle { opacity: .9; margin-bottom: 12px; }
+    kbd { background: #111423; border: 1px solid #2a2e49; border-bottom-color: #1b1f35; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+    .btn {
+      display: inline-block; margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, #222344, #171937);
+      color: #fff; font-weight: 800; letter-spacing: .4px; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .btn:active { transform: translateY(1px); }
+
+    @media (max-width: 720px) {
+      canvas { height: 62vh; }
+      .title { font-size: 22px; }
+    }
+  </style>
 </head>
 <body>
   <div id="wrap">
-    <canvas id="game" width="1000" height="620"></canvas>
+    <canvas id="game" width="960" height="600"></canvas>
     <div id="hud">
-      <div class="chip">Score: <span id="score">0</span></div>
-      <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> • Jump: <kbd>W</kbd></div>
+      <div class="chip">❤️ <span id="health">3</span></div>
+      <div class="chip">⚔️ <span id="score">0</span></div>
     </div>
     <div id="overlay">
       <div class="card">
         <div class="title">Knight vs Bugs</div>
-        <div class="subtitle">Defeat the bugs! Every 10 enemies, you advance a level.</div>
+        <div class="subtitle">Defeat the bugs and survive!</div>
         <button id="startBtn" class="btn">Start Game</button>
       </div>
     </div>
   </div>
-  <script src="game.js"></script>
+
+  <script>
+    const canvas=document.getElementById('game');
+    const ctx=canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    const gravity=0.6, friction=0.8, JUMP=-12, SPEED=4;
+
+    // state
+    let state={
+      running:false,
+      score:0,
+      player:null,
+      enemies:[],
+      platforms:[],
+      keys:{},
+      health:3
+    };
+
+    // helpers
+    function rectsCollide(r1,r2){
+      return r1.x<r2.x+r2.w && r1.x+r1.w>r2.x && r1.y<r2.y+r2.h && r1.y+r1.h>r2.y;
+    }
+
+    class Player{
+      constructor(){
+        this.x=100;this.y=H-150;
+        this.w=32;this.h=48;
+        this.vx=0;this.vy=0;
+        this.onGround=false;
+      }
+      get rect(){return {x:this.x,y:this.y,w:this.w,h:this.h}}
+      update(plats){
+        this.vy+=gravity;
+        this.x+=this.vx;
+        this.y+=this.vy;
+        this.onGround=false;
+        for(const p of plats){
+          if(rectsCollide(this.rect,p)){
+            if(this.vy>0){
+              this.y=p.y-this.h;
+              if(p.bouncy){
+                this.vy=JUMP*1.2; // bounce
+              }else{
+                this.vy=0;
+                this.onGround=true;
+              }
+            } else if(this.vy<0){
+              this.y=p.y+p.h;
+              this.vy=0;
+            }
+          }
+        }
+        if(this.x<0) this.x=0;
+        if(this.x+this.w>W) this.x=W-this.w;
+        if(this.y+this.h>H){
+          this.y=H-this.h;this.vy=0;this.onGround=true;
+        }
+      }
+      draw(){
+        ctx.fillStyle="white";
+        ctx.fillRect(this.x,this.y,this.w,this.h);
+      }
+    }
+
+    function drawPlatforms(){
+      for(const p of state.platforms){
+        if(p.bouncy){
+          ctx.fillStyle='#9b5de5';
+          ctx.fillRect(p.x,p.y,p.w,p.h);
+          ctx.fillStyle='rgba(255,255,255,0.4)';
+          ctx.fillRect(p.x,p.y,p.w,3);
+        } else {
+          ctx.fillStyle='#3b2a55';
+          ctx.fillRect(p.x,p.y,p.w,p.h);
+          ctx.fillStyle='rgba(255,255,255,0.1)';
+          ctx.fillRect(p.x,p.y,p.w,3);
+        }
+      }
+    }
+
+    function loop(){
+      if(!state.running) return;
+      ctx.clearRect(0,0,W,H);
+      state.player.vx=0;
+      if(state.keys["ArrowLeft"]) state.player.vx=-SPEED;
+      if(state.keys["ArrowRight"]) state.player.vx=SPEED;
+      if(state.keys["ArrowUp"] && state.player.onGround) state.player.vy=JUMP;
+      state.player.update(state.platforms);
+      drawPlatforms();
+      state.player.draw();
+      requestAnimationFrame(loop);
+    }
+
+    // start game
+    function startGame(){
+      state.running=true;
+      state.score=0;
+      state.health=3;
+      state.player=new Player();
+      state.platforms=[
+        {x:0,y:H-20,w:W,h:20},
+        {x:200,y:H-100,w:100,h:20},
+        {x:400,y:H-140,w:60,h:18,bouncy:true} // jump pad
+      ];
+      document.getElementById("overlay").style.display="none";
+      loop();
+    }
+
+    // input
+    window.addEventListener("keydown",e=>{state.keys[e.key]=true;});
+    window.addEventListener("keyup",e=>{state.keys[e.key]=false;});
+
+    // hook start button AFTER DOM loaded
+    window.addEventListener("DOMContentLoaded",()=>{
+      document.getElementById("startBtn").addEventListener("click",startGame);
+    });
+  </script>
 </body>
 </html>
