@@ -117,7 +117,7 @@ function update() {
   }
 
   // Attack
-  if (keys["Space"] && !player.attacking) {
+  if (keys["KeyZ"] && !player.attacking) { // Changed attack to 'Z'
     player.attacking = true; player.attackTime = 10;
   }
   if (player.attacking) {
@@ -137,17 +137,27 @@ function update() {
     player.canDash = true;
   }
 
-  // Platforms
+  // Platforms collision (fixed)
   for (let p of platforms) {
-    if (player.x < p.x + p.w &&
-        player.x + player.w > p.x &&
-        player.y + player.h > p.y &&
-        player.y + player.h < p.y + 20 &&
-        player.vy >= 0) {
-      player.y = p.y - player.h;
-      player.vy = p.type === "bouncy" ? -15 : 0;
-      player.jumping = false;
-      player.canDash = true;
+    let playerBottom = player.y + player.h;
+    let playerTop = player.y;
+    let prevBottom = player.y - player.vy + player.h;
+
+    if (player.x < p.x + p.w && player.x + player.w > p.x) {
+
+      // Landing on top
+      if (prevBottom <= p.y && playerBottom > p.y && player.vy >= 0) {
+        player.y = p.y - player.h;
+        player.vy = p.type === "bouncy" ? -15 : 0;
+        player.jumping = false;
+        player.canDash = true;
+      }
+
+      // Hitting head from below
+      else if (prevBottom >= p.y + p.h && playerTop < p.y + p.h && player.vy < 0) {
+        player.y = p.y + p.h;
+        player.vy = 0;
+      }
     }
   }
 
