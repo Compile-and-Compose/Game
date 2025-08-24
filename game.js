@@ -27,6 +27,7 @@ function reseed(newSeed = Date.now()) {
 // =============================
 let player, platforms, enemies, keys = {};
 let gameRunning = false;
+let wave = 1;
 
 // =============================
 // Entities
@@ -64,13 +65,20 @@ function generatePlatforms() {
   }
 }
 
-function generateEnemies() {
+function generateEnemies(numEnemies) {
   enemies = [];
-  let numEnemies = 3 + Math.floor(rng() * 4); // 3–6 enemies
   for (let i = 0; i < numEnemies; i++) {
-    let x = rng() * (canvas.width - 40);
-    let y = rng() * (canvas.height / 2);
-    enemies.push({ x, y, w: 28, h: 28, vx: (rng() - 0.5) * 2, vy: 0, alive: true });
+    let platform = platforms[Math.floor(rng() * platforms.length)];
+    let x = platform.x + rng() * (platform.w - 30);
+    let y = platform.y - 28;
+    let type = rng() < 0.5 ? "patrol" : "stationary";
+
+    enemies.push({
+      x, y, w: 28, h: 28,
+      vx: type === "patrol" ? (rng() < 0.5 ? -1 : 1) * 1.5 : 0,
+      type,
+      alive: true
+    });
   }
 }
 
@@ -161,13 +169,17 @@ function update() {
   }
 
   // Enemies
+  let allDead = true;
   for (let e of enemies) {
     if (!e.alive) continue;
-    e.x += e.vx;
+    allDead = false;
 
-    if (e.x < 0 || e.x + e.w > canvas.width) e.vx *= -1;
+    if (e.type === "patrol") {
+      e.x += e.vx;
+      if (e.x < 0 || e.x + e.w > canvas.width) e.vx *= -1;
+    }
 
-    // Collision with attack
+    // Attack collision
     if (player.attacking) {
       let rangeX = player.x + (player.facing === 1 ? player.w : -20);
       let swordBox = { x: rangeX, y: player.y, w: 20, h: player.h };
@@ -178,6 +190,14 @@ function update() {
         e.alive = false;
       }
     }
+  }
+
+  // Next wave if cleared
+  if (allDead) {
+    wave++;
+    reseed(rngSeed + 1);
+    generatePlatforms();
+    generateEnemies(3 + Math.floor(rng() * 4) + wave); // scale difficulty
   }
 }
 
@@ -207,9 +227,14 @@ function draw() {
   // Enemies
   for (let e of enemies) {
     if (!e.alive) continue;
-    ctx.fillStyle = "#ffb703";
+    ctx.fillStyle = e.type === "patrol" ? "#ffb703" : "#fb8500";
     ctx.fillRect(e.x, e.y, e.w, e.h);
   }
+
+  // Wave text
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px Arial";
+  ctx.fillText("Wave: " + wave, 10, 25);
 }
 
 // =============================
@@ -228,7 +253,8 @@ document.getElementById("startBtn").addEventListener("click", () => {
   reseed();
   player = makePlayer();
   generatePlatforms();
-  generateEnemies();
+  generateEnemies(4);
+  wave = 1;
   gameRunning = true;
   document.getElementById("overlay").style.display = "none";
 });
@@ -236,7 +262,8 @@ document.getElementById("startBtn").addEventListener("click", () => {
 document.getElementById("seedBtn").addEventListener("click", () => {
   reseed();
   generatePlatforms();
-  generateEnemies();
+  generateEnemies(4);
+  wave = 1;
 });
 
 // Start loop
