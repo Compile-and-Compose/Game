@@ -94,9 +94,7 @@ document.addEventListener("keyup", e => { keys[e.code] = false; });
 function update() {
   if (!gameRunning) return;
 
-  // Store previous position for collision
-  let prevX = player.x;
-  let prevY = player.y;
+  let prevY = player.y; // Store previous y for collision checks
 
   // Gravity
   player.vy += 0.5;
@@ -120,46 +118,20 @@ function update() {
     player.vx = player.facing * 12; player.vy = 0; player.dashTime--;
   }
 
-  // Attack (Z key)
-  if (keys["KeyZ"] && !player.attacking) { 
-    player.attacking = true; 
-    player.attackTime = 10;
+  // Attack
+  if (keys["KeyZ"] && !player.attacking) { // Attack button is Z
+    player.attacking = true; player.attackTime = 10;
+  }
+  if (player.attacking) {
+    player.attackTime--;
+    if (player.attackTime <= 0) player.attacking = false;
   }
 
   // Apply velocity
   player.x += player.vx;
   player.y += player.vy;
 
-  // Platform collision (robust)
-  for (let p of platforms) {
-    let playerLeft = player.x;
-    let playerRight = player.x + player.w;
-    let playerTop = player.y;
-    let playerBottom = player.y + player.h;
-
-    let prevBottom = prevY + player.h;
-    let prevTop = prevY;
-
-    // Horizontal overlap
-    if (playerRight > p.x && playerLeft < p.x + p.w) {
-
-      // Landing on top
-      if (prevBottom <= p.y && playerBottom > p.y && player.vy >= 0) {
-        player.y = p.y - player.h;
-        player.vy = p.type === "bouncy" ? -15 : 0;
-        player.jumping = false;
-        player.canDash = true;
-      }
-
-      // Hitting head from below
-      else if (prevTop >= p.y + p.h && playerTop < p.y + p.h && player.vy < 0) {
-        player.y = p.y + p.h;
-        player.vy = 0;
-      }
-    }
-  }
-
-  // Floor collision
+  // Floor
   if (player.y + player.h > canvas.height) {
     player.y = canvas.height - player.h;
     player.vy = 0;
@@ -167,10 +139,34 @@ function update() {
     player.canDash = true;
   }
 
-  // Attack timer
-  if (player.attacking) {
-    player.attackTime--;
-    if (player.attackTime <= 0) player.attacking = false;
+  // =============================
+  // Platform collision (fixed)
+  // =============================
+  for (let p of platforms) {
+    let playerLeft = player.x;
+    let playerRight = player.x + player.w;
+    let playerTop = player.y;
+    let playerBottom = player.y + player.h;
+
+    let prevTop = prevY;
+    let prevBottom = prevY + player.h;
+
+    if (playerRight > p.x && playerLeft < p.x + p.w) {
+
+      // Landing on top
+      if (player.vy >= 0 && prevBottom <= p.y && playerBottom > p.y) {
+        player.y = p.y - player.h;
+        player.vy = p.type === "bouncy" ? -15 : 0;
+        player.jumping = false;
+        player.canDash = true;
+      }
+
+      // Hitting head from below
+      else if (player.vy < 0 && prevTop >= p.y + p.h && playerTop < p.y + p.h) {
+        player.y = p.y + p.h;
+        player.vy = 0;
+      }
+    }
   }
 
   // Enemies
