@@ -1,35 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Knight vs. Spiders — Surface & Procedural Cave</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Knight vs Bugs</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="wrap">
-    <canvas id="game" width="960" height="600" aria-label="Game canvas" role="img"></canvas>
-  </div>
-  <div id="hud">
-    <div class="chip" id="stats">❤ 3 | ⚔ 0 | 🕷 0 | ⌚ 0:00</div>
-    <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> · Jump: <kbd>W</kbd> or <kbd>Space</kbd> · Attack: <kbd>J</kbd> · Dash: <kbd>K</kbd> · Pause: <kbd>P</kbd></div>
-  </div>
-  <div id="overlay" hidden>
-    <div class="card">
-      <div class="title">Knight vs. Spiders — Another Planet</div>
-      <div class="subtitle">A tiny 2D platformer. Defeat waves of spider-like bugs on an alien world. Survive, score points, and clear stages!</div>
-      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
-        <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd></div>
-        <div class="chip">Jump <kbd>W</kbd> or <kbd>Space</kbd></div>
-        <div class="chip">Attack <kbd>J</kbd></div>
-        <div class="chip">Dash <kbd>K</kbd></div>
-        <div class="chip">Pause <kbd>P</kbd></div>
+    <canvas id="game" width="1000" height="620"></canvas>
+    <div id="hud">
+      <div class="chip">Score: <span id="score">0</span></div>
+      <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> • Jump: <kbd>W</kbd></div>
+    </div>
+    <div id="overlay">
+      <div class="card">
+        <div class="title">Knight vs Bugs</div>
+        <div class="subtitle">Defeat the bugs! Every 10 enemies, you advance a level.</div>
+        <button id="startBtn" class="btn">Start Game</button>
       </div>
-      <a class="btn" id="startBtn">Start Game</a>
-      <a class="btn" id="seedBtn">New Seed</a>
     </div>
   </div>
-
   <script src="game.js"></script>
 </body>
 </html>
