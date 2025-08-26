@@ -1,473 +1,264 @@
-// --- Helpers
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>Math.random()*(b-a)+a;
-  const irand=(a,b)=>Math.floor(rand(a,b));
-  const chance=p=>Math.random()<p;
-
-  // PRNG w/ seed so cave can be reproducible when desired
-  function makePRNG(seed){
-    let s = seed>>>0 || (Math.random()*2**32)|0;
-    return function(){ // xorshift32
-      s ^= s<<13; s ^= s>>>17; s ^= s<<5; return (s>>>0)/4294967296;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
-
-  }
-
-  const W=960,H=600, G=0.9, FRICT=0.82, MOVE=0.9, MAXRUN=6.2, JUMP=-16.8, DASH=14, DASH_T=10;
-  const ATTACK_T=10, ATTACK_CD=22, ATTACK_R=56;
-
-  const canvas=document.getElementById('game');
-  const ctx=canvas.getContext('2d');
-  const statsEl=document.getElementById('stats');
-  const overlay=document.getElementById('overlay');
-  const startBtn=document.getElementById('startBtn');
-  const seedBtn=document.getElementById('seedBtn');
-
-  let keys=new Set();
-  addEventListener('keydown',e=>{keys.add(e.key.toLowerCase()); if(['w','a','s','d','j','k',' ','p'].includes(e.key.toLowerCase())) e.preventDefault();});
-  addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function aabb(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
-
-  class Entity{constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.vx=0;this.vy=0;this.dead=false;} get rect(){return {x:this.x,y:this.y,w:this.w,h:this.h}}}
-
-  class Player extends Entity{
-    constructor(){super(120,H-140,28,40); this.hp=3; this.onGround=false; this.face=1; this.attackT=0; this.attackCD=0; this.dashT=0; this.invT=0; this.kills=0;}
-    update(plats){
-      if(this.invT>0) this.invT--;
-      const L=keys.has('a'), R=keys.has('d'), J=keys.has('w')||keys.has(' '), D=keys.has('s'), A=keys.has('j'), Dash=keys.has('k');
-      if(L) this.vx-=MOVE; if(R) this.vx+=MOVE; if(L&&!R) this.face=-1; else if(R&&!L) this.face=1;
-      if(Dash && this.dashT<=0 && this.onGround){this.dashT=DASH_T; this.vx=DASH*this.face; this.vy=-2;}
-      if(this.dashT>0) this.dashT--;
-      if(A && this.attackCD<=0){this.attackT=ATTACK_T; this.attackCD=ATTACK_CD;}
-      if(this.attackT>0) this.attackT--; if(this.attackCD>0) this.attackCD--;
-      this.vx*=FRICT; this.vx=clamp(this.vx,-MAXRUN,MAXRUN); this.vy+=G;
-      if(J && this.onGround){this.vy=JUMP; this.onGround=false;}
-      // x
-      this.x+=this.vx; for(const p of plats){ if(aabb(this.rect,p)){ if(this.vx>0) this.x=p.x-this.w; else this.x=p.x+p.w; this.vx=0; } }
-      // y
-      this.y+=this.vy; this.onGround=false; for(const p of plats){ if(aabb(this.rect,p)){ if(this.vy>0){this.y=p.y-this.h; this.vy=0; this.onGround=true;} else {this.y=p.y+p.h; this.vy=0;} } }
-      this.x=clamp(this.x,-40,W-this.w+40); this.y=clamp(this.y,-500,H-this.h);
-    }
-    hitbox(){ if(this.attackT<=0) return null; const cx=this.face>0? this.x+this.w-4: this.x-ATTACK_R+4; return {x:cx, y:this.y+this.h*0.5-18, w:ATTACK_R, h:36}; }
-  }
-
-  class Spider extends Entity{
-    constructor(x,y,spd=1.4,hp=2){super(x,y,30,22); this.speed=spd; this.vy=0; this.onGround=false; this.hp=hp; this.t=0;}
-    update(plats,player){
-      const dir=(player.x+player.w/2)<(this.x+this.w/2)?-1:1; const dist=Math.abs((player.x+player.w/2)-(this.x+this.w/2)); const chase=dist<260;
-      const sp=chase?this.speed*1.25:this.speed*0.8; this.vx = clamp((this.vx + sp*0.18*dir), -sp, sp);
-      if(chase&&this.onGround&&chance(0.05)) this.vy=-10.5;
-      this.vy+=G*0.9; this.x+=this.vx; for(const p of plats){ if(aabb(this.rect,p)){ if(this.vx>0) this.x=p.x-this.w; else this.x=p.x+p.w; this.vx=0; } }
-      this.y+=this.vy; this.onGround=false; for(const p of plats){ if(aabb(this.rect,p)){ if(this.vy>0){this.y=p.y-this.h; this.vy=0; this.onGround=true;} else {this.y=p.y+p.h; this.vy=0;} } }
-      this.t++;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
-  }
-
-  // WORLD MODES
-  const MODE_SURFACE=0, MODE_CAVE=1;
-
-  const state={
-    running:false, paused:false, mode:MODE_SURFACE, time:0, seed:(Math.random()*2**32)|0,
-    prng: makePRNG(0),
-    player:new Player(),
-    platforms:[],
-    enemies:[],
-    surface:{caveX:620, caveW:80, decor:[]},
-    cave:{rooms:[], spawnCD:120, cleared:false}
-
-
-
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// =============================
+// RNG with Seeds
+// =============================
+let rngSeed = Date.now();
+let rng = mulberry32(rngSeed);
+
+function mulberry32(a) {
+  return function () {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
+}
 
-  function reseed(seed){ state.seed=seed>>>0; state.prng = makePRNG(state.seed); }
+function reseed(newSeed = Date.now()) {
+  rngSeed = newSeed;
+  rng = mulberry32(rngSeed);
+  console.log("New Seed:", rngSeed);
+}
 
-  function resetAll(){
-    reseed(state.seed);
-    state.running=true; state.paused=false; overlay.style.display='none';
-    state.mode=MODE_SURFACE; state.time=0; state.player=new Player(); state.enemies=[];
-    buildSurface();
+// =============================
+// Game State
+// =============================
+let player, platforms = [], enemies = [], keys = {};
+let gameRunning = false;
+let wave = 1;
+
+// =============================
+// Entities
+// =============================
+function makePlayer() {
+  return {
+    x: 100, y: 100,
+    w: 32, h: 32,
+    vx: 0, vy: 0,
+    speed: 3,
+    jumping: false,
+    dashTime: 0,
+    canDash: true,
+    facing: 1, // 1 = right, -1 = left
+    attacking: false,
+    attackTime: 0
+  };
+}
+
+function generatePlatforms() {
+  platforms = [];
+  let numPlatforms = 6 + Math.floor(rng() * 5); // 6–10
+  let numBouncy = 2 + Math.floor(rng() * 2);   // 2–3
+
+  for (let i = 0; i < numPlatforms; i++) {
+    let x = rng() * (canvas.width - 120);
+    let y = rng() * (canvas.height - 60);
+    platforms.push({ x, y, w: 120, h: 20, type: "normal" });
   }
 
-  // SURFACE: straight ground with a hole leading down
-  function buildSurface(){
-    state.platforms=[];
-    // ground
-    state.platforms.push({x:0,y:H-60,w:W,h:60, surface:true});
-    // cave entrance (a gap in the ground)
-    const cx= irand(520, W-200); const cw= irand(70, 120);
-    state.surface.caveX=cx; state.surface.caveW=cw;
+  for (let i = 0; i < numBouncy; i++) {
+    let x = rng() * (canvas.width - 100);
+    let y = rng() * (canvas.height - 60);
+    platforms.push({ x, y, w: 100, h: 20, type: "bouncy" });
+  }
+}
 
+function generateEnemies(numEnemies) {
+  enemies = [];
+  for (let i = 0; i < numEnemies; i++) {
+    let platform = platforms[Math.floor(rng() * platforms.length)];
+    let x = platform.x + rng() * (platform.w - 28);
+    let y = platform.y - 28;
+    let type = rng() < 0.5 ? "patrol" : "stationary";
 
+    enemies.push({
+      x, y, w: 28, h: 28,
+      vx: type === "patrol" ? (rng() < 0.5 ? -1 : 1) * 1.5 : 0,
+      type,
+      alive: true
+    });
+  }
+}
 
+// =============================
+// Controls
+// =============================
+document.addEventListener("keydown", e => { keys[e.code] = true; });
+document.addEventListener("keyup", e => { keys[e.code] = false; });
+
+// =============================
+// Game Loop
+// =============================
+function update() {
+  if (!gameRunning) return;
+
+  // Store previous Y for collision calculation
+  let prevY = player.y;
+
+  // Gravity
+  player.vy += 0.5;
+  if (player.vy > 8) player.vy = 8;
+
+  // Movement
+  if (keys["ArrowLeft"] || keys["KeyA"]) { player.vx = -player.speed; player.facing = -1; }
+  else if (keys["ArrowRight"] || keys["KeyD"]) { player.vx = player.speed; player.facing = 1; }
+  else { player.vx = 0; }
+
+  // Jump
+  if ((keys["ArrowUp"] || keys["KeyW"]) && !player.jumping) {
+    player.vy = -10; player.jumping = true;
   }
 
-  function drawSurfaceBG(){
-
-    // stars
-    for(let i=0;i<120;i++){ const x=(i*47)%W, y=(i*97)%H; const a=0.5+0.5*Math.sin((i+state.time*0.005)); ctx.globalAlpha=a*0.8; ctx.beginPath(); ctx.arc(x,y,(i%5===0)?1.6:1,0,Math.PI*2); ctx.fillStyle='#cdd6f4'; ctx.fill(); }
-    ctx.globalAlpha=1;
-    // distant planet
-    ctx.save(); ctx.globalCompositeOperation='screen'; ctx.beginPath(); ctx.arc(140,110,60,0,Math.PI*2); ctx.fillStyle='#ffb703'; ctx.fill(); ctx.restore();
+  // Dash
+  if (keys["ShiftLeft"] && player.canDash) {
+    player.dashTime = 10; player.canDash = false;
+  }
+  if (player.dashTime > 0) {
+    player.vx = player.facing * 12; player.vy = 0; player.dashTime--;
   }
 
-  function drawSurface(){
-    drawSurfaceBG();
-    // ground
-    const g = state.platforms[0]; ctx.fillStyle='#3b2a55'; ctx.fillRect(g.x,g.y,g.w,g.h);
-    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(g.x,g.y,g.w,3);
-    // cave hole
-    const x=state.surface.caveX, w=state.surface.caveW, y=g.y; ctx.fillStyle='#120d22'; ctx.fillRect(x,y,w,100);
-    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.setLineDash([6,6]); ctx.strokeRect(x,y-2,w,14); ctx.setLineDash([]);
-    // sign
-    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(x-26,y-28,18,24); ctx.fillStyle='#111423'; ctx.fillRect(x-24,y-26,14,20); ctx.fillStyle='#ffd166'; ctx.fillRect(x-20,y-18,6,4);
+  // Attack with Z
+  if (keys["KeyZ"] && !player.attacking) {
+    player.attacking = true; player.attackTime = 10;
+  }
+  if (player.attacking) {
+    player.attackTime--;
+    if (player.attackTime <= 0) player.attacking = false;
   }
 
-  // CAVE: procedural platforms & walls
-  function buildCave(){
-    state.mode=MODE_CAVE; state.enemies=[]; state.cave.cleared=false; state.player.x = state.surface.caveX+10; state.player.y = -40; // drop in from top
-    // generate platforms that are reasonably traversable
-    const r = state.prng; const rooms=[]; const roomCount=5+Math.floor(r()*3); const width=W; const floorY=H-60;
-    let prevX=80, prevY=H-180;
-    for(let k=0;k<roomCount;k++){
-      const roomPlats=[]; // create 5-7 platforms per room
-      const num=5+Math.floor(r()*3);
-      for(let i=0;i<num;i++){
-        // constrain to reachable steps
-        const w= 120 + Math.floor(r()*120);
-        let x = 40 + Math.floor(r()*(width-80-w));
-        let y = 160 + Math.floor(r()*(H-260));
-        // soften large vertical jumps vs previous
-        if(i===0){ x = clamp(prevX + Math.floor((r()*2-1)*180), 40, width-40-w); y = clamp(prevY + Math.floor((r()*2-1)*120), 120, H-220); }
-        roomPlats.push({x,y,w,h:18});
-        prevX=x; prevY=y;
+  // Apply velocity
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Floor collision
+  if (player.y + player.h > canvas.height) {
+    player.y = canvas.height - player.h;
+    player.vy = 0;
+    player.jumping = false;
+    player.canDash = true;
+  }
+
+  // ===========================
+  // Platform collisions (fixed)
+  // ===========================
+  for (let p of platforms) {
+    let playerLeft = player.x;
+    let playerRight = player.x + player.w;
+    let playerTop = player.y;
+    let playerBottom = player.y + player.h;
+    let prevTop = prevY;
+    let prevBottom = prevY + player.h;
+
+    // Horizontal overlap check
+    if (playerRight > p.x && playerLeft < p.x + p.w) {
+      // Landing on top (falling)
+      if (player.vy >= 0 && prevBottom <= p.y && playerBottom > p.y) {
+        player.y = p.y - player.h;
+        player.vy = p.type === "bouncy" ? -15 : 0;
+        player.jumping = false;
+        player.canDash = true;
       }
-      // add floor and a couple pillars
-      roomPlats.push({x:0,y:floorY,w:width,h:60});
-      for(let p=0;p<2;p++){ const px=40+Math.floor(r()*(width-80)); roomPlats.push({x:px,y:floorY- irand(40,120), w:28,h:irand(36,90)}); }
-      rooms.push(roomPlats);
-    }
-    state.cave.rooms=rooms;
-    // use first room platforms initially
-    state.platforms=[...rooms[0]];
-  }
-
-  function drawCaveBG(){
-    // parallax strata
-    function band(yBase, amp, alpha){ ctx.beginPath(); ctx.moveTo(0,yBase); for(let x=0;x<=W;x+=12){ const y=yBase+Math.sin((x+state.time*0.02)/80)*amp + Math.cos((x+100)/50)*amp*0.5; ctx.lineTo(x,y);} ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fillStyle=`rgba(155,93,229,${alpha})`; ctx.fill(); }
-    band(H-150,6,0.15); band(H-110,8,0.22);
-    // cave ceiling gradient
-    const grd=ctx.createLinearGradient(0,0,0,H); grd.addColorStop(0,'rgba(0,0,0,0.6)'); grd.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
-
-
-
-  }
-
-  function drawPlatforms(){ for(const p of state.platforms){ ctx.fillStyle='#3b2a55'; ctx.fillRect(p.x,p.y,p.w,p.h); ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fillRect(p.x,p.y,p.w,3); } }
-
-
-
-
-
-
-
-
-  function drawPlayer(pl){
-    const {x,y,w,h}=pl; ctx.save(); ctx.translate(x+w/2,y+h/2); ctx.scale(pl.face,1); ctx.translate(-w/2,-h/2);
-    // shadow
-    ctx.globalAlpha=0.25; ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(w/2,h,16,6,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    // body
-    ctx.fillStyle='#8aa0ff'; ctx.fillRect(4,10,w-8,18); ctx.fillStyle='#c7d2fe'; ctx.fillRect(6,-2,16,12); ctx.fillStyle='#0ea5e9'; ctx.fillRect(8,2,12,4);
-    // legs & boots
-    ctx.fillStyle='#596080'; ctx.fillRect(6,h-20,6,12); ctx.fillRect(w-12,h-20,6,12); ctx.fillStyle='#444b6e'; ctx.fillRect(4,h-8,8,8); ctx.fillRect(w-12,h-8,8,8);
-    // sword / swing
-    if(pl.attackT>0){ const prog=1-pl.attackT/ATTACK_T; const cx=w-4, cy=16; ctx.save(); ctx.translate(cx,cy); ctx.rotate((-0.9+prog*2.2)); ctx.fillStyle='#e5e7eb'; ctx.fillRect(0,-2,22,4); ctx.globalAlpha=0.4; ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(-4,0,28,-0.4,1.5); ctx.stroke(); ctx.restore(); } else { ctx.fillStyle='#e5e7eb'; ctx.fillRect(w-2,20,16,3); }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ctx.restore();
-  }
-
-  function drawSpider(s){
-    const {x,y,w,h}=s; ctx.globalAlpha=0.22; ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(x+w/2,y+h,14,5,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    ctx.fillStyle='#2b2140'; ctx.fillRect(x+4,y+6,w-8,h-8);
-    ctx.fillStyle='#9b5de5'; ctx.beginPath(); ctx.ellipse(x+w/2,y+h/2+2,16,10,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#3d2a58'; ctx.fillRect(x+8,y+2,14,10); ctx.fillStyle='#f87171'; ctx.fillRect(x+8,y+10,2,4); ctx.fillRect(x+20,y+10,2,4);
-    ctx.strokeStyle='#4c3a6d'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<4;i++){ const lx=x+6+i*6; const ph=Math.sin(s.t*0.2+i); ctx.moveTo(lx,y+12); ctx.lineTo(lx-6,y+16+ph*2); ctx.moveTo(lx+10,y+12); ctx.lineTo(lx+16,y+16-ph*2);} ctx.stroke();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  }
-
-  // Cave wave spawning
-  function trySpawnEnemies(){
-    if(state.mode!==MODE_CAVE) return;
-    state.cave.spawnCD--; if(state.cave.spawnCD>0) return; state.cave.spawnCD = 90 + irand(-20,20);
-    // spawn on random platform (not too close)
-    const options=state.platforms.filter(p=>p.w>80);
-    if(!options.length) return; const pl=options[irand(0,options.length)]; const x=clamp(pl.x+irand(0,Math.max(1,pl.w-30)),10,W-40), y=pl.y-24;
-    if(Math.abs(x-state.player.x)<100) return; state.enemies.push(new Spider(x,y, 1.3+Math.random()*0.6, 2));
-  }
-
-  // Room transition logic (simple: every 10 kills -> next room)
-  function checkRoomAdvance(){
-    if(state.mode!==MODE_CAVE) return;
-    const kills=state.player.kills; const idx=Math.floor(kills/10);
-    const rooms=state.cave.rooms; if(idx>=0 && idx<rooms.length && state.platforms!==rooms[idx]){ state.platforms=[...rooms[idx]]; // soft teleport if falling through
-      // ensure player not inside tile
-      for(const p of state.platforms){ if(aabb(state.player.rect,p)){ state.player.y=p.y-state.player.h-1; state.player.vy=0; } }
-    }
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function updateHUD(){
-    const t=Math.floor(state.time/60); const m=String(Math.floor(t/60)); const s=String(t%60).padStart(2,'0');
-    const modeTxt = state.mode===MODE_SURFACE? 'Surface' : 'Cave';
-    statsEl.textContent = `❤ ${state.player.hp} | 🕷 ${state.player.kills} | ⌚ ${m}:${s} | Stage: ${modeTxt}`;
-  }
-
-  function damagePlayer(){ if(state.player.invT>0) return; state.player.hp--; state.player.invT=50; state.player.vx += (Math.random()<0.5? -8:8); state.player.vy=-8; if(state.player.hp<=0){ gameOver(); } }
-  function gameOver(){ state.running=false; overlay.style.display='grid'; overlay.querySelector('.title').textContent='You were overwhelmed'; overlay.querySelector('p').innerHTML='Press <kbd>R</kbd> to retry · <kbd>New Seed</kbd> for a fresh cave'; }
-
-  // MAIN LOOP
-  function step(){
-    if(!state.running){ requestAnimationFrame(step); return; }
-    if(!state.paused) state.time++;
-
-
-    // UPDATE
-    if(!state.paused){
-      state.player.update(state.platforms);
-      // Attack collisions
-      const hb=state.player.hitbox(); if(hb){ for(const e of state.enemies){ if(!e.dead && aabb(hb,e.rect)){ e.hp--; e.vx+= 3*(state.player.face); e.vy-=4; if(e.hp<=0){ e.dead=true; state.player.kills++; } } } }
-      // Touch damage
-      for(const e of state.enemies){ if(!e.dead && aabb(state.player.rect,e.rect)) damagePlayer(); }
-      // Clean dead/offscreen
-      state.enemies=state.enemies.filter(e=>!e.dead && e.y<H+120);
-
-      if(state.mode===MODE_SURFACE){
-        // If player falls in the cave hole, switch to cave mode
-        const holeX=state.surface.caveX, holeW=state.surface.caveW; const ground=state.platforms[0];
-        // if over the hole and y >= ground y - small tolerance, drop
-        const overHole = (state.player.x+state.player.w>holeX) && (state.player.x<holeX+holeW);
-        if(overHole && state.player.y+state.player.h>=ground.y-1){ buildCave(); }
-      } else {
-        trySpawnEnemies();
-        checkRoomAdvance();
+      // Hitting head from below (rising)
+      else if (player.vy < 0 && prevTop >= p.y + p.h && playerTop < p.y + p.h) {
+        player.y = p.y + p.h;
+        player.vy = 0;
       }
     }
-
-    // DRAW
-    ctx.clearRect(0,0,W,H);
-    if(state.mode===MODE_SURFACE){ drawSurface(); }
-    else { drawCaveBG(); }
-    drawPlatforms();
-    // debug attack area
-    const hb2=state.player.hitbox(); if(hb2){ ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fillRect(hb2.x,hb2.y,hb2.w,hb2.h); }
-
-
-
-    drawPlayer(state.player);
-    for(const e of state.enemies) drawSpider(e);
-
-    // vignette
-    const vg=ctx.createRadialGradient(W/2,H/2,100,W/2,H/2,520); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.5)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
-
-
-
-
-
-    updateHUD();
-    requestAnimationFrame(step);
-
-
-
-
-
-
-
-
   }
 
-  // INPUT: pause/reset/next seed
-  addEventListener('keydown',e=>{
-    const k=e.key.toLowerCase();
-    if(k==='p'){ state.paused=!state.paused; overlay.style.display= state.paused? 'grid':'none'; }
-    if(k==='r'){ resetAll(); }
+  // Enemies
+  let allDead = true;
+  for (let e of enemies) {
+    if (!e.alive) continue;
+    allDead = false;
 
-  });
-  startBtn.addEventListener('click',()=>{ resetAll(); });
-  seedBtn.addEventListener('click',()=>{ state.seed=(Math.random()*2**32)|0; reseed(state.seed); overlay.querySelector('.title').textContent='New Cave Seed Ready'; });
+    if (e.type === "patrol") {
+      e.x += e.vx;
+      if (e.x < 0 || e.x + e.w > canvas.width) e.vx *= -1;
+    }
 
-  // boot
-  overlay.style.display='grid';
-  requestAnimationFrame(step);
+    // Attack collision
+    if (player.attacking) {
+      let swordX = player.x + (player.facing === 1 ? player.w : -20);
+      let swordBox = { x: swordX, y: player.y, w: 20, h: player.h };
+      if (swordBox.x < e.x + e.w &&
+          swordBox.x + swordBox.w > e.x &&
+          swordBox.y < e.y + e.h &&
+          swordBox.y + swordBox.h > e.y) {
+        e.alive = false;
+      }
+    }
+  }
+
+  // Next wave if cleared
+  if (allDead) {
+    wave++;
+    reseed(rngSeed + 1);
+    generatePlatforms();
+    generateEnemies(3 + Math.floor(rng() * 4) + wave);
+  }
+}
+
+// =============================
+// Draw
+// =============================
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Player
+  ctx.fillStyle = "#4ade80";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Sword swing
+  if (player.attacking) {
+    ctx.fillStyle = "#ff6b6b";
+    let swordX = player.x + (player.facing === 1 ? player.w : -20);
+    ctx.fillRect(swordX, player.y, 20, player.h);
+  }
+
+  // Platforms
+  for (let p of platforms) {
+    ctx.fillStyle = p.type === "bouncy" ? "#9b5de5" : "#3b2a55";
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+  }
+
+  // Enemies
+  for (let e of enemies) {
+    if (!e.alive) continue;
+    ctx.fillStyle = e.type === "patrol" ? "#ffb703" : "#fb8500";
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+  }
+
+  // Wave text
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px Arial";
+  ctx.fillText("Wave: " + wave, 10, 25);
+}
+
+// =============================
+// Main Loop
+// =============================
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// =============================
+// Buttons
+// =============================
+document.getElementById("startBtn").addEventListener("click", () => {
+  const seedVal = parseInt(document.getElementById("seedInput").value) || Date.now();
+  reseed(seedVal);
+  player = makePlayer();
+  generatePlatforms();
+  generateEnemies(4);
+  wave = 1;
+  gameRunning = true;
+  document.getElementById("overlay").style.display = "none";
+});
+
+// Start loop
+loop();
