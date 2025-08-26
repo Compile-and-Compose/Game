@@ -269,13 +269,6 @@
 
   function drawPlatforms(){ for(const p of state.platforms){ ctx.fillStyle='#3b2a55'; ctx.fillRect(p.x,p.y,p.w,p.h); ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fillRect(p.x,p.y,p.w,3); } }
 
-
-
-
-
-
-
-
   function drawPlayer(pl){
     const {x,y,w,h}=pl; ctx.save(); ctx.translate(x+w/2,y+h/2); ctx.scale(pl.face,1); ctx.translate(-w/2,-h/2);
     // shadow
@@ -286,34 +279,6 @@
     ctx.fillStyle='#596080'; ctx.fillRect(6,h-20,6,12); ctx.fillRect(w-12,h-20,6,12); ctx.fillStyle='#444b6e'; ctx.fillRect(4,h-8,8,8); ctx.fillRect(w-12,h-8,8,8);
     // sword / swing
     if(pl.attackT>0){ const prog=1-pl.attackT/ATTACK_T; const cx=w-4, cy=16; ctx.save(); ctx.translate(cx,cy); ctx.rotate((-0.9+prog*2.2)); ctx.fillStyle='#e5e7eb'; ctx.fillRect(0,-2,22,4); ctx.globalAlpha=0.4; ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(-4,0,28,-0.4,1.5); ctx.stroke(); ctx.restore(); } else { ctx.fillStyle='#e5e7eb'; ctx.fillRect(w-2,20,16,3); }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     ctx.restore();
   }
 
@@ -323,26 +288,6 @@
     ctx.fillStyle='#9b5de5'; ctx.beginPath(); ctx.ellipse(x+w/2,y+h/2+2,16,10,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#3d2a58'; ctx.fillRect(x+8,y+2,14,10); ctx.fillStyle='#f87171'; ctx.fillRect(x+8,y+10,2,4); ctx.fillRect(x+20,y+10,2,4);
     ctx.strokeStyle='#4c3a6d'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<4;i++){ const lx=x+6+i*6; const ph=Math.sin(s.t*0.2+i); ctx.moveTo(lx,y+12); ctx.lineTo(lx-6,y+16+ph*2); ctx.moveTo(lx+10,y+12); ctx.lineTo(lx+16,y+16-ph*2);} ctx.stroke();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   }
 
   // Cave wave spawning
@@ -364,31 +309,6 @@
       for(const p of state.platforms){ if(aabb(state.player.rect,p)){ state.player.y=p.y-state.player.h-1; state.player.vy=0; } }
     }
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   function updateHUD(){
     const t=Math.floor(state.time/60); const m=String(Math.floor(t/60)); const s=String(t%60).padStart(2,'0');
     const modeTxt = state.mode===MODE_SURFACE? 'Surface' : 'Cave';
@@ -402,8 +322,6 @@
   function step(){
     if(!state.running){ requestAnimationFrame(step); return; }
     if(!state.paused) state.time++;
-
-
     // UPDATE
     if(!state.paused){
       state.player.update(state.platforms);
@@ -434,28 +352,13 @@
     // debug attack area
     const hb2=state.player.hitbox(); if(hb2){ ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fillRect(hb2.x,hb2.y,hb2.w,hb2.h); }
 
-
-
     drawPlayer(state.player);
     for(const e of state.enemies) drawSpider(e);
 
     // vignette
     const vg=ctx.createRadialGradient(W/2,H/2,100,W/2,H/2,520); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.5)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
-
-
-
-
-
     updateHUD();
     requestAnimationFrame(step);
-
-
-
-
-
-
-
-
   }
 
   // INPUT: pause/reset/next seed
