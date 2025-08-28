@@ -131,7 +131,10 @@ function gameLoop(){
   // draw player
   ctx.fillStyle='var(--ok)'; ctx.fillRect(pl.x,pl.y,pl.w,pl.h);
   // draw enemies
-  enemies.forEach(e=>ctx.fillStyle='var(--danger)'; ctx.fillRect(e.x,e.y,e.w,e.h));
+  enemies.forEach(e=>{
+    ctx.fillStyle='var(--danger)';
+    ctx.fillRect(e.x,e.y,e.w,e.h);
+  });
   requestAnimationFrame(gameLoop);
 }
 
