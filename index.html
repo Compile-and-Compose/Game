@@ -1,174 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Knight vs. Spiders — Surface & Procedural Cave</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    body { margin: 0; background: #111; color: #fff; font-family: sans-serif; }
-    #wrap { display: flex; justify-content: center; margin-top: 10px; }
-    canvas { background: #222; border: 3px solid #555; }
-    #hud { text-align: center; margin-top: 8px; }
-    .chip { background:#333; padding:6px 10px; border-radius:12px; display:inline-block; margin:2px; }
-    #overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; }
-    .card { background:#222; padding:20px; border-radius:16px; max-width:600px; text-align:center; }
-    .btn { display:inline-block; background:#444; padding:8px 16px; margin:6px; border-radius:8px; cursor:pointer; text-decoration:none; color:#fff; }
-    .btn:hover { background:#666; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Knight vs. Spiders — Surface & Procedural Cave</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="game" width="960" height="600" aria-label="Game canvas" role="img"></canvas>
-  </div>
-  <div id="hud">
-    <div class="chip" id="stats">❤ 3 | ⚔ 0 | 🕷 0 | ⌚ 0:00</div>
-    <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> · Jump: <kbd>W</kbd> or <kbd>Space</kbd> · Attack: <kbd>J</kbd> · Dash: <kbd>K</kbd> · Pause: <kbd>P</kbd></div>
-  </div>
-  <div id="overlay">
-    <div class="card">
-      <div class="title">Knight vs. Spiders — Another Planet</div>
-      <div class="subtitle">A tiny 2D platformer. Defeat waves of spider-like bugs on an alien world. Survive, score points, and clear stages!</div>
-      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
-        <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd></div>
-        <div class="chip">Jump <kbd>W</kbd> or <kbd>Space</kbd></div>
-        <div class="chip">Attack <kbd>J</kbd></div>
-        <div class="chip">Dash <kbd>K</kbd></div>
-        <div class="chip">Pause <kbd>P</kbd></div>
-      </div>
-      <a class="btn" id="startBtn">Start Game</a>
-      <a class="btn" id="seedBtn">New Seed</a>
+<div id="wrap">
+  <canvas id="game" width="960" height="600" aria-label="Game canvas" role="img"></canvas>
+</div>
+<div id="hud">
+  <div class="chip" id="stats">❤ 3 | ⚔ 0 | 🕷 0 | ⌚ 0:00</div>
+  <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> · Jump: <kbd>W</kbd> or <kbd>Space</kbd> · Attack: <kbd>J</kbd> · Dash: <kbd>K</kbd> · Pause: <kbd>P</kbd></div>
+</div>
+<div id="overlay" hidden>
+  <div class="card">
+    <div class="title">Knight vs. Spiders — Another Planet</div>
+    <div class="subtitle">A tiny 2D platformer. Defeat waves of spider-like bugs on an alien world. Survive, score points, and clear stages!</div>
+    <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
+      <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd></div>
+      <div class="chip">Jump <kbd>W</kbd> or <kbd>Space</kbd></div>
+      <div class="chip">Attack <kbd>J</kbd></div>
+      <div class="chip">Dash <kbd>K</kbd></div>
+      <div class="chip">Pause <kbd>P</kbd></div>
     </div>
+    <a class="btn" id="startBtn">Start Game</a>
+    <a class="btn" id="seedBtn">New Seed</a>
   </div>
-
-  <script>
-  // === Helpers ===
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>Math.random()*(b-a)+a;
-  const irand=(a,b)=>Math.floor(rand(a,b));
-
-  const canvas=document.getElementById("game");
-  const ctx=canvas.getContext("2d");
-  const startBtn=document.getElementById("startBtn");
-  const overlay=document.getElementById("overlay");
-
-  let keys={};
-  document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
-  document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
-
-  // === Player === (unchanged)
-  let player={x:100,y:500,w:40,h:50,vy:0,onGround:false};
-  const gravity=8.0; // increased gravity
-  const jumpStrength=-12;
-
-  // === Platforms & JumpPads ===
-  let platforms=[];
-  let jumpPads=[];
-
-  function generateStage(){
-    platforms=[
-      {x:0,y:550,w:960,h:50}, // ground
-      {x:300,y:450,w:100,h:20},
-      {x:500,y:350,w:120,h:20},
-      {x:700,y:250,w:100,h:20}
-    ];
-
-    jumpPads=[];
-    let padCount=irand(2,4); // 2~3 jump pads
-    for(let i=0;i<padCount;i++){
-      let base=platforms[irand(1,platforms.length)];
-      jumpPads.push({
-        x: base.x+irand(0,base.w-60),
-        y: base.y-20,
-        w:60,
-        h:20,
-        power:-18-irand(0,5)
-      });
-    }
-  }
-
-  function resetGame(){
-    // player unchanged
-    player.x=100; player.y=500; player.vy=0;
-    generateStage();
-  }
-
-  function update(){
-    // Horizontal movement
-    if(keys['a']) player.x-=4;
-    if(keys['d']) player.x+=4;
-
-    // Jump
-    if((keys['w']||keys[' ']) && player.onGround){
-      player.vy=jumpStrength;
-      player.onGround=false;
-    }
-
-    // Gravity
-    player.vy+=gravity*0.1; // scale gravity for pixel movement
-    player.y+=player.vy;
-
-    player.onGround=false;
-
-    // Platform collision
-    for(let p of platforms){
-      if(player.x< p.x+p.w && player.x+player.w>p.x && player.y+player.h>p.y && player.y+player.h< p.y+player.vy+10){
-        player.y=p.y-player.h;
-        player.vy=0;
-        player.onGround=true;
-      }
-    }
-
-    // JumpPad collision
-    for(let j of jumpPads){
-      if(player.x< j.x+j.w && player.x+player.w>j.x && player.y+player.h>j.y && player.y+player.h< j.y+player.vy+10){
-        player.y=j.y-player.h;
-        player.vy=j.power;
-      }
-    }
-
-    // Boundaries
-    if(player.x<0) player.x=0;
-    if(player.x+player.w>canvas.width) player.x=canvas.width-player.w;
-    if(player.y+player.h>canvas.height){
-      player.y=canvas.height-player.h;
-      player.vy=0;
-      player.onGround=true;
-    }
-  }
-
-  function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // Platforms
-    ctx.fillStyle="#555";
-    for(let p of platforms){
-      ctx.fillRect(p.x,p.y,p.w,p.h);
-    }
-
-    // Jump Pads
-    ctx.fillStyle="#0f0";
-    for(let j of jumpPads){
-      ctx.fillRect(j.x,j.y,j.w,j.h);
-    }
-
-    // Player
-    ctx.fillStyle="#09f";
-    ctx.fillRect(player.x,player.y,player.w,player.h);
-  }
-
-  function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  startBtn.onclick=()=>{
-    overlay.hidden=true; // fixes start screen issue
-    resetGame();
-    loop();
-  }
-
-  </script>
+</div>
+<script src="game.js"></script>
 </body>
 </html>
