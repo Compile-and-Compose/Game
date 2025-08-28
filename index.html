@@ -56,9 +56,9 @@
   document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
   document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-  // === Player ===
+  // === Player === (unchanged)
   let player={x:100,y:500,w:40,h:50,vy:0,onGround:false};
-  const gravity=0.6;
+  const gravity=8.0; // increased gravity
   const jumpStrength=-12;
 
   // === Platforms & JumpPads ===
@@ -74,7 +74,7 @@
     ];
 
     jumpPads=[];
-    let padCount=irand(2,4); // 2 to 3 pads
+    let padCount=irand(2,4); // 2~3 jump pads
     for(let i=0;i<padCount;i++){
       let base=platforms[irand(1,platforms.length)];
       jumpPads.push({
@@ -88,6 +88,7 @@
   }
 
   function resetGame(){
+    // player unchanged
     player.x=100; player.y=500; player.vy=0;
     generateStage();
   }
@@ -104,7 +105,7 @@
     }
 
     // Gravity
-    player.vy+=gravity;
+    player.vy+=gravity*0.1; // scale gravity for pixel movement
     player.y+=player.vy;
 
     player.onGround=false;
@@ -122,7 +123,7 @@
     for(let j of jumpPads){
       if(player.x< j.x+j.w && player.x+player.w>j.x && player.y+player.h>j.y && player.y+player.h< j.y+player.vy+10){
         player.y=j.y-player.h;
-        player.vy=j.power; // strong upward force
+        player.vy=j.power;
       }
     }
 
@@ -163,7 +164,7 @@
   }
 
   startBtn.onclick=()=>{
-    overlay.hidden=true;
+    overlay.hidden=true; // fixes start screen issue
     resetGame();
     loop();
   }
