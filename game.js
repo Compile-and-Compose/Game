@@ -4,15 +4,15 @@ const rand=(a,b)=>Math.random()*(b-a)+a;
 const irand=(a,b)=>Math.floor(rand(a,b));
 const chance=p=>Math.random()<p;
 
-// PRNG w/ seed so cave can be reproducible when desired
+// PRNG w/ seed
 function makePRNG(seed){
   let s = seed>>>0 || (Math.random()*2**32)|0;
   return function(){ s ^= s<<13; s ^= s>>>17; s ^= s<<5; return (s>>>0)/4294967296; }
 }
 
-// Game constants
-const W=960,H=600, G=8, FRICT=0.82, MOVE=0.9, MAXRUN=6.2, JUMP=-16.8, DASH=14, DASH_T=10;
-const ATTACK_T=10, ATTACK_CD=22, ATTACK_R=56;
+// --- Constants ---
+const W=960,H=600,G=8,FRICT=0.82,MOVE=0.9,MAXRUN=6.2,JUMP=-16.8,DASH=14,DASH_T=10;
+const ATTACK_T=10,ATTACK_CD=22,ATTACK_R=56;
 
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
@@ -25,15 +25,16 @@ let keys=new Set();
 addEventListener('keydown',e=>{keys.add(e.key.toLowerCase()); if(['w','a','s','d','j','k',' ','p'].includes(e.key.toLowerCase())) e.preventDefault();});
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 
+// --- Utility ---
 function aabb(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 
+// --- Entities ---
 class Entity{constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.vx=0;this.vy=0;this.dead=false;} get rect(){return {x:this.x,y:this.y,w:this.w,h:this.h}}}
-
 class Player extends Entity{
   constructor(){super(120,H-140,28,40); this.hp=3; this.onGround=false; this.face=1; this.attackT=0; this.attackCD=0; this.dashT=0; this.invT=0; this.kills=0;}
   update(plats){
     if(this.invT>0) this.invT--;
-    const L=keys.has('a'), R=keys.has('d'), J=keys.has('w')||keys.has(' '), D=keys.has('s'), A=keys.has('j'), Dash=keys.has('k');
+    const L=keys.has('a'), R=keys.has('d'), J=keys.has('w')||keys.has(' '), A=keys.has('j'), Dash=keys.has('k');
     if(L) this.vx-=MOVE; if(R) this.vx+=MOVE; if(L&&!R) this.face=-1; else if(R&&!L) this.face=1;
     if(Dash && this.dashT<=0 && this.onGround){this.dashT=DASH_T; this.vx=DASH*this.face; this.vy=-2;}
     if(this.dashT>0) this.dashT--;
@@ -68,28 +69,72 @@ class BouncyPlatform extends Entity{
   constructor(x,y,w,h,bounce=-18){ super(x,y,w,h); this.bounceStrength=bounce; }
   checkBounce(player){
     if(player.vy>=0 && aabb(player.rect,this.rect) && player.y+player.h<=this.y+player.vy+2){
-      player.y=this.y-player.h;
-      player.vy=this.bounceStrength;
-      player.onGround=false;
+      player.y=this.y-player.h; player.vy=this.bounceStrength; player.onGround=false;
     }
   }
-  draw(ctx){
-    ctx.fillStyle='var(--bouncy)';
-    ctx.fillRect(this.x,this.y,this.w,this.h);
-    ctx.strokeStyle='rgba(255,255,255,0.3)';
-    ctx.strokeRect(this.x,this.y,this.w,this.h);
+  draw(ctx){ ctx.fillStyle='var(--bouncy)'; ctx.fillRect(this.x,this.y,this.w,this.h); ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.strokeRect(this.x,this.y,this.w,this.h);}
+}
+
+// --- Game state ---
+let state={player:null, platforms:[], enemies:[], seed:irand(0,999999), prng:null};
+const player=new Player();
+
+function buildPlatforms(){
+  state.platforms=[];
+  for(let i=0;i<12;i++){
+    const w=irand(80,160), h=8, x=irand(0,W-w), y=H-60-i*50;
+    state.platforms.push({x,y,w,h});
+  }
+  addBouncyPlatforms();
+}
+
+function addBouncyPlatforms(){
+  const plats=state.platforms;
+  let nBouncy=irand(2,4); 
+  while(nBouncy>0){
+    const i=irand(0,plats.length);
+    const p=plats[i];
+    if(!(p instanceof BouncyPlatform)){
+      plats[i]=new BouncyPlatform(p.x,p.y,p.w,p.h,-18);
+      nBouncy--;
+    }
   }
 }
 
-// Replace some platforms with bouncy platforms
-function addBouncyPlatforms(){
-  state.platforms.forEach((p,i)=>{
-    if(i%6===2){ // example: every 6th platform
-      const bp = new BouncyPlatform(p.x,p.y,p.w,p.h,-18);
-      state.platforms[i]=bp;
+function spawnEnemies(){
+  state.enemies=[];
+  state.platforms.forEach(p=>{
+    if(!(p instanceof BouncyPlatform)&&chance(0.4)){
+      const s=new Spider(p.x+irand(0,p.w-30),p.y-22);
+      state.enemies.push(s);
     }
   });
 }
 
-// --- State and loop omitted for brevity (use your original game.js) ---
-// After generating cave platforms, call addBouncyPlatforms();
+function resetGame(){
+  state.prng=makePRNG(state.seed);
+  state.player=new Player();
+  buildPlatforms();
+  spawnEnemies();
+}
+
+function gameLoop(){
+  const pl=state.player; const plats=state.platforms; const enemies=state.enemies;
+  ctx.clearRect(0,0,W,H);
+  pl.update(plats);
+  enemies.forEach(e=>{ e.update(plats,pl); });
+  // draw platforms
+  plats.forEach(p=>{
+    if(p instanceof BouncyPlatform) p.draw(ctx);
+    else { ctx.fillStyle='var(--platform)'; ctx.fillRect(p.x,p.y,p.w,p.h);}
+  });
+  // draw player
+  ctx.fillStyle='var(--ok)'; ctx.fillRect(pl.x,pl.y,pl.w,pl.h);
+  // draw enemies
+  enemies.forEach(e=>ctx.fillStyle='var(--danger)'; ctx.fillRect(e.x,e.y,e.w,e.h));
+  requestAnimationFrame(gameLoop);
+}
+
+startBtn.onclick=()=>{overlay.hidden=true; resetGame(); gameLoop();};
+seedBtn.onclick=()=>{state.seed=irand(0,999999); overlay.hidden=false;};
+
