@@ -1,3 +1,7 @@
+function hide_Overlay() {
+  document.getElementById("overlay").style.display = "none";
+}
+
 // --- Helpers
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.random()*(b-a)+a;
