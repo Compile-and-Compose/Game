@@ -138,6 +138,6 @@ function gameLoop(){
   requestAnimationFrame(gameLoop);
 }
 
-startBtn.onclick=()=>{overlay.hidden=true; resetGame(); gameLoop();};
+// startBtn.onclick=()=>{overlay.hidden=true; resetGame(); gameLoop();};
 seedBtn.onclick=()=>{state.seed=irand(0,999999); overlay.hidden=false;};
 
