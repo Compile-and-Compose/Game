@@ -1,164 +1,382 @@
+New Test
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Knight vs. Spiders — Surface & Procedural Cave</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    body { margin: 0; background: #111; color: #fff; font-family: sans-serif; }
-    #wrap { display: flex; justify-content: center; margin-top: 10px; }
-    canvas { background: #222; border: 3px solid #555; }
-    #hud { text-align: center; margin-top: 8px; }
-    .chip { background:#333; padding:6px 10px; border-radius:12px; display:inline-block; margin:2px; }
-    #overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; }
-    .card { background:#222; padding:20px; border-radius:16px; max-width:600px; text-align:center; }
-    .btn { display:inline-block; background:#444; padding:8px 16px; margin:6px; border-radius:8px; cursor:pointer; text-decoration:none; color:#fff; }
-    .btn:hover { background:#666; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Neon 2D Space Shooter</title>
+<style>
+    /* Main styles */
+    body { margin: 0; overflow: hidden; background: #0b0f25; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #00fffc; }
+    canvas { display: block; }
+    #shop {
+        position: absolute; top: 10px; right: 10px;
+        background: rgba(0,0,0,0.72); padding: 12px; border-radius: 10px;
+        border: 2px solid #00fffc; min-width: 260px;
+        box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+    }
+    #shop h3 { margin: 0 0 8px 0; font-size: 16px; letter-spacing: 0.6px; text-transform: uppercase; }
+    #shop button {
+        display:block; margin:6px 0; padding:8px 10px; width:100%;
+        border: none; border-radius:8px; cursor:pointer;
+        background: linear-gradient(135deg,#ff00ff,#7a00ff); color:#fff; font-weight:700;
+        box-shadow: 0 6px 18px rgba(122,0,255,0.12);
+    }
+    #shop button:disabled { background:#2d2d2d; color:#9a9a9a; cursor:not-allowed; box-shadow:none; }
+    #points { position:absolute; top:10px; left:10px; font-size:18px; padding:8px 12px; border-radius:10px; background: rgba(0,0,0,0.55); border:2px solid #00fffc; }
+    #testBtn { position:absolute; top:50px; left:10px; padding:6px 10px; border-radius:8px; border:none; background:#00ff00; color:#000; font-weight:700; cursor:pointer; }
+</style>
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="game" width="960" height="600" aria-label="Game canvas" role="img"></canvas>
-  </div>
-  <div id="hud">
-    <div class="chip" id="stats">❤ 3 | ⚔ 0 | 🕷 0 | ⌚ 0:00</div>
-    <div class="chip" id="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> · Jump: <kbd>W</kbd> or <kbd>Space</kbd> · Attack: <kbd>J</kbd> · Dash: <kbd>K</kbd> · Pause: <kbd>P</kbd></div>
-  </div>
-  <div id="overlay">
-    <div class="card">
-      <div class="title">Knight vs. Spiders — Another Planet</div>
-      <div class="subtitle">A tiny 2D platformer. Defeat waves of spider-like bugs on an alien world. Survive, score points, and clear stages!</div>
-      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
-        <div class="chip">Move <kbd>A</kbd>/<kbd>D</kbd></div>
-        <div class="chip">Jump <kbd>W</kbd> or <kbd>Space</kbd></div>
-        <div class="chip">Attack <kbd>J</kbd></div>
-        <div class="chip">Dash <kbd>K</kbd></div>
-        <div class="chip">Pause <kbd>P</kbd></div>
-      </div>
-      <a class="btn" id="startBtn" onclick="resetGame(); gameLoop(); hide_Overlay();">Start Game</a>
-      <a class="btn" id="seedBtn" onclick="show_Overlay(); state.seed=irand(0,999999);">New Seed</a>
-    </div>
-  </div>
+<canvas id="gameCanvas"></canvas>
+<div id="points">Points: 0</div>
+<button id="testBtn">+250 Points</button>
+<div id="shop">
+    <h3>Shop</h3>
+    <button id="speedUpgradeBtn">Increase Speed (10 points)</button>
+    <button id="bulletUpgradeBtn">Bigger Bullets (15 points)</button>
+    <button id="fireRateUpgradeBtn">Faster Fire (20 points)</button>
+    <button id="turretUpgradeBtn">AI Turret (50 points)</button>
+    <button id="meleeUpgradeBtn">Upgrade Melee (30 points)</button>
+    <button id="multishotUpgradeBtn">Multishot (100 points)</button>
+</div>
 
-<!--
-  <script>
-  // === Helpers ===
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>Math.random()*(b-a)+a;
-  const irand=(a,b)=>Math.floor(rand(a,b));
+<script>
+// Neon 2D Space Shooter - Full unsimplified version with fixed player bullet inaccuracy.
+// Controls: WASD/Arrow keys to move, Space to shoot, E to melee.
 
-  const canvas=document.getElementById("game");
-  const ctx=canvas.getContext("2d");
-  const startBtn=document.getElementById("startBtn");
-  const overlay=document.getElementById("overlay");
+(function(){
+"use strict";
 
-  let keys={};
-  document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
-  document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
 
-  // === Player ===
-  let player={x:100,y:500,w:40,h:50,vy:0,onGround:false};
-  const gravity=0.6;
-  const jumpStrength=-12;
+// Points & UI
+let points = 0;
+function updatePoints(){ document.getElementById('points').innerText = "Points: " + points; }
+function addPoints(n){ points += n; updatePoints(); }
 
-  // === Platforms & JumpPads ===
-  let platforms=[
-    {x:0,y:550,w:960,h:50}, // ground
-    {x:300,y:450,w:100,h:20},
-    {x:500,y:350,w:120,h:20},
-    {x:700,y:250,w:100,h:20}
-  ];
+document.getElementById('testBtn').addEventListener('click', ()=>{ addPoints(250); });
 
-  let jumpPads=[
-    {x:400,y:530,w:60,h:20,power:-20},
-    {x:600,y:330,w:60,h:20,power:-18}
-  ];
+// Player object
+const player = {
+    x: canvas.width/2, y: canvas.height/2,
+    vx: 0, vy: 0, maxSpeed: 5, accel: 0.2, friction: 0.05,
+    size: 20, fireRate: 200, lastShot: 0, angle: 0,
+    turrets: 0, turretCooldown: 2000, turretTimers: [], turretUpgrades:0,
+    meleeRange: 50, meleeCooldown: 5000, lastMelee:0, glow:0,
+    multishot: 0 // number of extra bullets: 0..5
+};
 
-  function resetGame(){
-    player.x=100; player.y=500; player.vy=0;
-  }
+// Upgrades data
+const upgrades = {
+    speed:     { count: 0, cost: 10,  max: 15 },
+    bullet:    { count: 0, cost: 15,  max: 15 },
+    fireRate:  { count: 0, cost: 20,  max: 15 },
+    turret:    { count: 0, cost: 50,  max: 15 },
+    melee:     { count: 0, cost: 30,  max: 15 },
+    multishot: { count: 0, cost: 100, max: 5  }
+};
 
-  function update(){
-    // Horizontal movement
-    if(keys['a']) player.x-=4;
-    if(keys['d']) player.x+=4;
+let bulletSize = 5;
+const aiBulletSize = 5;
 
-    // Jump
-    if((keys['w']||keys[' ']) && player.onGround){
-      player.vy=jumpStrength;
-      player.onGround=false;
+// Input handling
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key] = true; if(e.key === ' '){ e.preventDefault(); shoot(); } });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+window.addEventListener('keydown', e => { if(e.code === 'KeyE') meleeAttack(); });
+
+// Entities
+const bullets = [];
+const aiBullets = [];
+const enemies = [];
+const particles = [];
+const playerTrail = [];
+const stars = [];
+for(let i=0;i<150;i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2+1, speed: Math.random()*0.5+0.2 });
+
+function createParticle(x,y,dx,dy,color,size,life){ particles.push({ x,y,dx,dy,color,size,life,alpha:1 }); }
+
+// Enemy spawning
+const enemyTypes=[
+    {shape:'circle',color:'#ff0055',size:20,speed:2},
+    {shape:'triangle',color:'#00fffc',size:25,speed:1.5},
+    {shape:'square',color:'#ffff00',size:20,speed:1.8}
+];
+function spawnEnemy(){
+    const type = enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
+    const edge = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+    let x,y;
+    if(edge === 'horizontal'){ x = Math.random()<0.5 ? 0 : canvas.width; y = Math.random()*canvas.height; }
+    else { x = Math.random()*canvas.width; y = Math.random()<0.5 ? 0 : canvas.height; }
+    enemies.push({ ...type, x, y });
+}
+setInterval(spawnEnemy, 1500);
+
+// Drawing helpers
+function drawNeonShape(shape,x,y,size,color,angle=0,alpha=1){
+    ctx.save();
+    ctx.shadowColor = color; ctx.shadowBlur = size;
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 2;
+    ctx.translate(x,y); ctx.rotate(angle); ctx.beginPath();
+    if(shape === 'circle'){ ctx.arc(0,0,size,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    else if(shape === 'triangle'){ ctx.moveTo(size,0); ctx.lineTo(-size/2,-size/2); ctx.lineTo(-size/2,size/2); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    else if(shape === 'square'){ ctx.fillRect(-size/2,-size/2,size,size); ctx.strokeRect(-size/2,-size/2,size,size); }
+    ctx.restore();
+}
+
+// Shooting (multishot fan) with FIXED INACCURACY applied to player bullets only
+function shoot(){
+    const now = Date.now();
+    if(now - player.lastShot < player.fireRate) return;
+    player.lastShot = now;
+    const baseAngle = player.angle;
+
+    // fixed inaccuracy magnitude: Â±5 degrees (~0.0873 radians)
+    const inaccuracyMax = 0.0872665; // 5 degrees in radians
+
+    const totalShots = 1 + player.multishot; // 1 to 6
+    const spread = 0.20; // radians between bullets in the ideal fan
+    const start = baseAngle - ((totalShots - 1) * spread) / 2;
+
+    for(let i=0;i<totalShots;i++){
+        // apply a small random offset per bullet within the fixed inaccuracy range
+        const randomOffset = (Math.random()*2 - 1) * inaccuracyMax;
+        const a = start + i*spread + randomOffset;
+        bullets.push({ x:player.x + Math.cos(a)*player.size, y:player.y + Math.sin(a)*player.size, dx:Math.cos(a)*10, dy:Math.sin(a)*10, size:bulletSize });
     }
+    player.glow = 1;
+}
 
-    // Gravity
-    player.vy+=gravity;
-    player.y+=player.vy;
-
-    player.onGround=false;
-
-    // Platform collision
-    for(let p of platforms){
-      if(player.x< p.x+p.w && player.x+player.w>p.x && player.y+player.h>p.y && player.y+player.h< p.y+player.vy+10){
-        // land on top
-        player.y=p.y-player.h;
-        player.vy=0;
-        player.onGround=true;
-      }
+// Melee attack
+let meleeAnimations = [];
+function meleeAttack(){
+    const now = Date.now();
+    if(now - player.lastMelee < player.meleeCooldown) return;
+    player.lastMelee = now;
+    for(let i=enemies.length-1;i>=0;i--){
+        const e = enemies[i];
+        const dist = Math.hypot(player.x - e.x, player.y - e.y);
+        if(dist <= player.meleeRange){
+            enemies.splice(i,1);
+            addPoints(1);
+            for(let p=0;p<5;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*3+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
+        }
     }
+    meleeAnimations.push({ x: player.x, y: player.y, size: player.meleeRange, alpha:1, shock:true });
+}
 
-    // JumpPad collision
-    for(let j of jumpPads){
-      if(player.x< j.x+j.w && player.x+player.w>j.x && player.y+player.h>j.y && player.y+player.h< j.y+player.vy+10){
-        player.y=j.y-player.h;
-        player.vy=j.power; // strong upward force
-      }
+// Turret behavior (AI turrets remain accurate)
+let turretStaggerIndex = 0;
+function turretShoot(){
+    if(player.turrets === 0 || enemies.length === 0) return;
+    const now = Date.now();
+    if(!player.turretTimers[turretStaggerIndex]) player.turretTimers[turretStaggerIndex] = 0;
+    if(now - player.turretTimers[turretStaggerIndex] >= player.turretCooldown){
+        player.turretTimers[turretStaggerIndex] = now;
+        // find closest enemy
+        let closest = enemies[0]; let minDist = Math.hypot(player.x - closest.x, player.y - closest.y);
+        for(const e of enemies){ const d = Math.hypot(player.x - e.x, player.y - e.y); if(d < minDist){ minDist = d; closest = e; } }
+        const radius = player.size + 15;
+        const angleOffset = (turretStaggerIndex / player.turrets) * Math.PI * 2;
+        const tx = player.x + Math.cos(angleOffset) * radius;
+        const ty = player.y + Math.sin(angleOffset) * radius;
+        const angle = Math.atan2(closest.y - ty, closest.x - tx);
+        aiBullets.push({ x:tx, y:ty, dx:Math.cos(angle)*7, dy:Math.sin(angle)*7, size:aiBulletSize, trail:[] });
+        turretStaggerIndex = (turretStaggerIndex + 1) % player.turrets;
     }
+}
 
-    // Boundaries
-    if(player.x<0) player.x=0;
-    if(player.x+player.w>canvas.width) player.x=canvas.width-player.w;
-    if(player.y+player.h>canvas.height){
-      player.y=canvas.height-player.h;
-      player.vy=0;
-      player.onGround=true;
+// Upgrade UI: update button labels and state
+function formatLabel(type){
+    const up = upgrades[type];
+    const label = type.charAt(0).toUpperCase() + type.slice(1);
+    if(up.count >= up.max) return label + " (MAX)";
+    return label + " (" + up.cost + " points)";
+}
+function updateButton(type){
+    const btn = document.getElementById(type + "UpgradeBtn");
+    if(!btn) return;
+    const up = upgrades[type];
+    btn.innerText = formatLabel(type);
+    btn.disabled = (up.count >= up.max);
+}
+function updateAllButtons(){
+    for(const k in upgrades) updateButton(k);
+}
+
+// Buy upgrade logic
+function buyUpgrade(type){
+    const up = upgrades[type];
+    if(!up) return;
+    if(up.count >= up.max) return;
+    if(points < up.cost) return;
+    points -= up.cost;
+    updatePoints();
+    up.count++;
+    // increase cost progression
+    up.cost += (type === 'multishot') ? 50 : 5;
+    // apply upgrade effects
+    if(type === 'speed') player.maxSpeed += 1;
+    else if(type === 'bullet') bulletSize += 0.7;
+    else if(type === 'fireRate') player.fireRate = Math.max(50, player.fireRate - 50);
+    else if(type === 'turret'){
+        if(player.turretUpgrades < 7){ player.turrets += 1; player.turretTimers.push(0); }
+        else if(player.turretUpgrades < 15){ player.turretCooldown = Math.max(50, player.turretCooldown - 10); }
+        player.turretUpgrades += 1;
     }
-  }
+    else if(type === 'melee'){ player.meleeRange += 20; player.meleeCooldown = Math.max(2000, player.meleeCooldown - 500); }
+    else if(type === 'multishot'){ player.multishot = Math.min(player.multishot + 1, upgrades.multishot.max); }
+    updateButton(type);
+}
 
-  function draw(){
+// Wire shop buttons to buyUpgrade
+document.getElementById('speedUpgradeBtn').addEventListener('click', ()=> buyUpgrade('speed'));
+document.getElementById('bulletUpgradeBtn').addEventListener('click', ()=> buyUpgrade('bullet'));
+document.getElementById('fireRateUpgradeBtn').addEventListener('click', ()=> buyUpgrade('fireRate'));
+document.getElementById('turretUpgradeBtn').addEventListener('click', ()=> buyUpgrade('turret'));
+document.getElementById('meleeUpgradeBtn').addEventListener('click', ()=> buyUpgrade('melee'));
+document.getElementById('multishotUpgradeBtn').addEventListener('click', ()=> buyUpgrade('multishot'));
+
+// Initialize buttons labels
+updateAllButtons();
+
+// Main game loop
+let turretOrbitAngle = 0;
+function update(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // Platforms
-    ctx.fillStyle="#555";
-    for(let p of platforms){
-      ctx.fillRect(p.x,p.y,p.w,p.h);
+    // stars
+    for(const s of stars){
+        ctx.save(); ctx.shadowColor='#ffffff'; ctx.shadowBlur=10; ctx.fillStyle='#ffffff';
+        ctx.globalAlpha = 0.8 + Math.sin(Date.now()/500)*0.2;
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill(); ctx.restore();
+        s.y += s.speed; if(s.y > canvas.height) s.y = 0;
     }
 
-    // Jump Pads
-    ctx.fillStyle="#0f0";
-    for(let j of jumpPads){
-      ctx.fillRect(j.x,j.y,j.w,j.h);
+    // player trail
+    playerTrail.push({ x: player.x, y: player.y, angle: player.angle });
+    if(playerTrail.length > 15) playerTrail.shift();
+    for(let t=0;t<playerTrail.length;t++){
+        const pos = playerTrail[t];
+        drawNeonShape('triangle', pos.x, pos.y, player.size*0.5, '#00fffc', pos.angle, (t+1)/playerTrail.length*0.15);
     }
 
-    // Player
-    ctx.fillStyle="#09f";
-    ctx.fillRect(player.x,player.y,player.w,player.h);
-  }
+    // movement input
+    if(keys['ArrowUp'] || keys['w']){ player.vx += Math.cos(player.angle) * player.accel; player.vy += Math.sin(player.angle) * player.accel; player.glow = 1; }
+    if(keys['ArrowDown'] || keys['s']){ player.vx -= Math.cos(player.angle) * player.accel; player.vy -= Math.sin(player.angle) * player.accel; player.glow = 1; }
+    if(keys['ArrowLeft'] || keys['a']){ player.vx += Math.cos(player.angle - Math.PI/2) * player.accel; player.vy += Math.sin(player.angle - Math.PI/2) * player.accel; player.glow = 1; }
+    if(keys['ArrowRight'] || keys['d']){ player.vx += Math.cos(player.angle + Math.PI/2) * player.accel; player.vy += Math.sin(player.angle + Math.PI/2) * player.accel; player.glow = 1; }
 
-  function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
-  }
+    // physics
+    player.vx *= (1 - player.friction); player.vy *= (1 - player.friction);
+    const spd = Math.hypot(player.vx, player.vy);
+    if(spd > player.maxSpeed){ const k = player.maxSpeed / spd; player.vx *= k; player.vy *= k; }
+    player.x += player.vx; player.y += player.vy;
+    player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
+    player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+    if(player.vx !== 0 || player.vy !== 0) player.angle = Math.atan2(player.vy, player.vx);
 
-  startBtn.onclick=()=>{
-    overlay.hidden=true;
-    resetGame();
-    loop();
-  }
+    // draw player
+    drawNeonShape('triangle', player.x, player.y, player.size + player.glow*5, '#00fffc', player.angle, 0.5);
+    player.glow *= 0.9;
+    drawNeonShape('triangle', player.x, player.y, player.size, '#00fffc', player.angle);
 
-  </script>
-  -->
+    // melee cooldown ring
+    const now = Date.now();
+    const meleeProgress = Math.min(1, (now - player.lastMelee) / player.meleeCooldown);
+    ctx.save(); ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 4; ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.arc(player.x, player.y, player.size + 10, -Math.PI/2, -Math.PI/2 + meleeProgress * Math.PI*2); ctx.stroke(); ctx.restore();
 
-<script src="game.js"></script>
+    // turrets orbit
+    turretOrbitAngle += 0.05;
+    const radius = player.size + 15;
+    for(let t=0;t<player.turrets;t++){
+        const angleOffset = (t / player.turrets) * Math.PI*2 + turretOrbitAngle;
+        const tx = player.x + Math.cos(angleOffset) * radius;
+        const ty = player.y + Math.sin(angleOffset) * radius;
+        drawNeonShape('triangle', tx, ty, 8, '#00ffff', angleOffset + Math.PI/2);
+
+        const cooldownProgress = Math.min(1, (now - (player.turretTimers[t] || 0)) / player.turretCooldown);
+        ctx.save(); ctx.beginPath(); ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 3; ctx.globalAlpha = 0.7;
+        ctx.arc(tx, ty, 12, -Math.PI/2, -Math.PI/2 + cooldownProgress * Math.PI*2); ctx.stroke(); ctx.restore();
+    }
+
+    turretShoot();
+
+    // melee animations
+    for(let i=meleeAnimations.length-1;i>=0;i--){
+        const anim = meleeAnimations[i];
+        drawNeonShape('circle', anim.x, anim.y, anim.size, '#ff00ff', 0, anim.alpha);
+        if(anim.shock){
+            ctx.save(); ctx.strokeStyle = '#ff00ff'; ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15; ctx.globalAlpha = anim.alpha; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(anim.x, anim.y, anim.size, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+        }
+        anim.alpha -= 0.05; anim.size += 2; if(anim.alpha <= 0) meleeAnimations.splice(i,1);
+    }
+
+    // particles update
+    for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i]; drawNeonShape('circle', p.x, p.y, p.size, p.color, 0, p.alpha || 1); p.x += p.dx; p.y += p.dy; p.life--; p.alpha = p.life / 30;
+        if(p.life <= 0) particles.splice(i,1);
+    }
+
+    // bullets update
+    for(let i=bullets.length-1;i>=0;i--){
+        const b = bullets[i]; b.x += b.dx; b.y += b.dy; drawNeonShape('circle', b.x, b.y, b.size, '#ff00ff'); createParticle(b.x,b.y,(Math.random()-0.5)*1,(Math.random()-0.5)*1,'#ff00ff',2,20);
+
+        let killed = false;
+        for(let j=enemies.length-1;j>=0;j--){
+            const e = enemies[j]; const dist = Math.hypot(b.x - e.x, b.y - e.y);
+            if(dist < e.size + b.size){ enemies.splice(j,1); bullets.splice(i,1); addPoints(1);
+                for(let p=0;p<8;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*2+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
+                killed = true; break;
+            }
+        }
+        if(killed) continue;
+        if(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) bullets.splice(i,1);
+    }
+
+    // ai bullets update
+    for(let i=aiBullets.length-1;i>=0;i--){
+        const b = aiBullets[i]; b.trail.push({x:b.x,y:b.y}); if(b.trail.length>8) b.trail.shift();
+        for(let t=0;t<b.trail.length;t++){ const pos = b.trail[t]; drawNeonShape('circle', pos.x, pos.y, b.size*0.5, '#00ffff', 0, (t+1)/b.trail.length*0.3); }
+        b.x += b.dx; b.y += b.dy; drawNeonShape('circle', b.x, b.y, b.size, '#00ffff');
+        for(let j=enemies.length-1;j>=0;j--){
+            const e = enemies[j]; const dist = Math.hypot(b.x - e.x, b.y - e.y);
+            if(dist < e.size + b.size){ enemies.splice(j,1); aiBullets.splice(i,1); addPoints(1);
+                for(let p=0;p<8;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*2+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
+                break;
+            }
+        }
+        if(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) aiBullets.splice(i,1);
+    }
+
+    // enemies update
+    for(const e of enemies){
+        const angle = Math.atan2(player.y - e.y, player.x - e.x);
+        e.x += Math.cos(angle) * e.speed; e.y += Math.sin(angle) * e.speed;
+        drawNeonShape(e.shape, e.x, e.y, e.size, e.color);
+    }
+
+    requestAnimationFrame(update);
+}
+
+// initialize UI buttons with labels and handlers done earlier
+updatePoints();
+updateAllButtons();
+update(); // start game loop
+
+// expose buyUpgrade to global for direct onclick compatibility if needed
+window.buyUpgrade = buyUpgrade;
+
+})(); // end IIFE
+
+</script>
 </body>
 </html>
