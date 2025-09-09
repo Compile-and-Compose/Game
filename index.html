@@ -1,4 +1,3 @@
-New Test
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,9 +41,7 @@ New Test
 </div>
 
 <script>
-// Neon 2D Space Shooter - Full unsimplified version with fixed player bullet inaccuracy.
-// Controls: WASD/Arrow keys to move, Space to shoot, E to melee.
-
+// Neon 2D Space Shooter - Full unsimplified with dynamic enemy spawning
 (function(){
 "use strict";
 
@@ -57,7 +54,7 @@ resize();
 // Points & UI
 let points = 0;
 function updatePoints(){ document.getElementById('points').innerText = "Points: " + points; }
-function addPoints(n){ points += n; updatePoints(); }
+function addPoints(n){ points += n; updatePoints(); enemiesDefeated += n; } // track defeated via points from kills
 
 document.getElementById('testBtn').addEventListener('click', ()=>{ addPoints(250); });
 
@@ -88,7 +85,6 @@ const aiBulletSize = 5;
 const keys = {};
 window.addEventListener('keydown', e => { keys[e.key] = true; if(e.key === ' '){ e.preventDefault(); shoot(); } });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
-
 window.addEventListener('keydown', e => { if(e.code === 'KeyE') meleeAttack(); });
 
 // Entities
@@ -102,21 +98,47 @@ for(let i=0;i<150;i++) stars.push({ x: Math.random()*canvas.width, y: Math.rando
 
 function createParticle(x,y,dx,dy,color,size,life){ particles.push({ x,y,dx,dy,color,size,life,alpha:1 }); }
 
-// Enemy spawning
+// Enemy spawning definitions
 const enemyTypes=[
     {shape:'circle',color:'#ff0055',size:20,speed:2},
     {shape:'triangle',color:'#00fffc',size:25,speed:1.5},
     {shape:'square',color:'#ffff00',size:20,speed:1.8}
 ];
+
+let baseSpawnInterval = 4000; // ms baseline
+let lastSpawnTime = Date.now();
+let enemiesDefeated = 0;
+let gameStartTime = Date.now();
+
+function totalUpgradesCount(){
+    return Object.values(upgrades).reduce((s,u)=>s+u.count,0);
+}
+
+// Returns current interval (ms) between spawns based on time, upgrades, and defeated enemies
+function getDynamicSpawnInterval(){
+    const elapsedSeconds = (Date.now() - gameStartTime) / 1000; // seconds elapsed
+    const upgradeFactor = totalUpgradesCount();
+    // difficulty magnitude combines defeated enemies, upgrades, and elapsed time
+    const difficultyMagnitude = enemiesDefeated * 0.8 + upgradeFactor * 2 + elapsedSeconds * 0.7;
+    // shrink interval proportional to difficulty
+    let interval = baseSpawnInterval - difficultyMagnitude * 10; // tune multiplier for feeling
+    // if player bought many fireRate upgrades, they can kill faster; also ensure min interval
+    const minInterval = 300; // never below this
+    interval = Math.max(minInterval, interval);
+    return interval;
+}
+
+// Spawn one enemy at random edge; can be called multiple times for burst spawns
 function spawnEnemy(){
     const type = enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
     const edge = Math.random() < 0.5 ? 'horizontal' : 'vertical';
     let x,y;
-    if(edge === 'horizontal'){ x = Math.random()<0.5 ? 0 : canvas.width; y = Math.random()*canvas.height; }
-    else { x = Math.random()*canvas.width; y = Math.random()<0.5 ? 0 : canvas.height; }
-    enemies.push({ ...type, x, y });
+    if(edge === 'horizontal'){ x = Math.random()<0.5 ? -30 : canvas.width + 30; y = Math.random()*canvas.height; }
+    else { x = Math.random()*canvas.width; y = Math.random()<0.5 ? -30 : canvas.height + 30; }
+    // slight variation on speed and size to increase variety as difficulty increases
+    const difficultyScale = 1 + Math.min(3, (totalUpgradesCount() + enemiesDefeated / 20) * 0.08);
+    enemies.push({ ...type, x, y, speed: type.speed * difficultyScale, size: type.size * (0.85 + Math.random()*0.4) });
 }
-setInterval(spawnEnemy, 1500);
 
 // Drawing helpers
 function drawNeonShape(shape,x,y,size,color,angle=0,alpha=1){
@@ -130,22 +152,18 @@ function drawNeonShape(shape,x,y,size,color,angle=0,alpha=1){
     ctx.restore();
 }
 
-// Shooting (multishot fan) with FIXED INACCURACY applied to player bullets only
+// Shooting (player) with fixed small inaccuracy
 function shoot(){
     const now = Date.now();
     if(now - player.lastShot < player.fireRate) return;
     player.lastShot = now;
     const baseAngle = player.angle;
-
-    // fixed inaccuracy magnitude: Â±5 degrees (~0.0873 radians)
-    const inaccuracyMax = 0.0872665; // 5 degrees in radians
-
-    const totalShots = 1 + player.multishot; // 1 to 6
-    const spread = 0.20; // radians between bullets in the ideal fan
+    const inaccuracyMax = 0.0872665; // ~5deg
+    const totalShots = 1 + player.multishot;
+    const spread = 0.20; // radians between bullets in the fan
     const start = baseAngle - ((totalShots - 1) * spread) / 2;
 
     for(let i=0;i<totalShots;i++){
-        // apply a small random offset per bullet within the fixed inaccuracy range
         const randomOffset = (Math.random()*2 - 1) * inaccuracyMax;
         const a = start + i*spread + randomOffset;
         bullets.push({ x:player.x + Math.cos(a)*player.size, y:player.y + Math.sin(a)*player.size, dx:Math.cos(a)*10, dy:Math.sin(a)*10, size:bulletSize });
@@ -171,7 +189,7 @@ function meleeAttack(){
     meleeAnimations.push({ x: player.x, y: player.y, size: player.meleeRange, alpha:1, shock:true });
 }
 
-// Turret behavior (AI turrets remain accurate)
+// Turret behavior (accurate)
 let turretStaggerIndex = 0;
 function turretShoot(){
     if(player.turrets === 0 || enemies.length === 0) return;
@@ -179,7 +197,6 @@ function turretShoot(){
     if(!player.turretTimers[turretStaggerIndex]) player.turretTimers[turretStaggerIndex] = 0;
     if(now - player.turretTimers[turretStaggerIndex] >= player.turretCooldown){
         player.turretTimers[turretStaggerIndex] = now;
-        // find closest enemy
         let closest = enemies[0]; let minDist = Math.hypot(player.x - closest.x, player.y - closest.y);
         for(const e of enemies){ const d = Math.hypot(player.x - e.x, player.y - e.y); if(d < minDist){ minDist = d; closest = e; } }
         const radius = player.size + 15;
@@ -206,9 +223,7 @@ function updateButton(type){
     btn.innerText = formatLabel(type);
     btn.disabled = (up.count >= up.max);
 }
-function updateAllButtons(){
-    for(const k in upgrades) updateButton(k);
-}
+function updateAllButtons(){ for(const k in upgrades) updateButton(k); }
 
 // Buy upgrade logic
 function buyUpgrade(type){
@@ -219,9 +234,7 @@ function buyUpgrade(type){
     points -= up.cost;
     updatePoints();
     up.count++;
-    // increase cost progression
     up.cost += (type === 'multishot') ? 50 : 5;
-    // apply upgrade effects
     if(type === 'speed') player.maxSpeed += 1;
     else if(type === 'bullet') bulletSize += 0.7;
     else if(type === 'fireRate') player.fireRate = Math.max(50, player.fireRate - 50);
@@ -235,21 +248,31 @@ function buyUpgrade(type){
     updateButton(type);
 }
 
-// Wire shop buttons to buyUpgrade
+// Wire shop buttons
 document.getElementById('speedUpgradeBtn').addEventListener('click', ()=> buyUpgrade('speed'));
 document.getElementById('bulletUpgradeBtn').addEventListener('click', ()=> buyUpgrade('bullet'));
 document.getElementById('fireRateUpgradeBtn').addEventListener('click', ()=> buyUpgrade('fireRate'));
 document.getElementById('turretUpgradeBtn').addEventListener('click', ()=> buyUpgrade('turret'));
 document.getElementById('meleeUpgradeBtn').addEventListener('click', ()=> buyUpgrade('melee'));
 document.getElementById('multishotUpgradeBtn').addEventListener('click', ()=> buyUpgrade('multishot'));
-
-// Initialize buttons labels
 updateAllButtons();
 
 // Main game loop
 let turretOrbitAngle = 0;
 function update(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // spawn logic: check if enough time has passed and spawn appropriate number
+    const now = Date.now();
+    const interval = getDynamicSpawnInterval();
+    if(now - lastSpawnTime >= interval){
+        lastSpawnTime = now;
+        // decide number of spawns in burst depending on difficulty
+        const difficultyMagnitude = enemiesDefeated + totalUpgradesCount()*2 + ((now - gameStartTime) / 1000) / 10;
+        let spawnCount = 1 + Math.floor(difficultyMagnitude / 30); // more kills/upgrades/time -> occasional multiple spawns
+        spawnCount = Math.min(spawnCount, 6); // cap burst size
+        for(let s=0;s<spawnCount;s++) spawnEnemy();
+    }
 
     // stars
     for(const s of stars){
@@ -288,7 +311,6 @@ function update(){
     drawNeonShape('triangle', player.x, player.y, player.size, '#00fffc', player.angle);
 
     // melee cooldown ring
-    const now = Date.now();
     const meleeProgress = Math.min(1, (now - player.lastMelee) / player.meleeCooldown);
     ctx.save(); ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 4; ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 15; ctx.globalAlpha = 0.8;
     ctx.beginPath(); ctx.arc(player.x, player.y, player.size + 10, -Math.PI/2, -Math.PI/2 + meleeProgress * Math.PI*2); ctx.stroke(); ctx.restore();
@@ -322,24 +344,27 @@ function update(){
 
     // particles update
     for(let i=particles.length-1;i>=0;i--){
-        const p = particles[i]; drawNeonShape('circle', p.x, p.y, p.size, p.color, 0, p.alpha || 1); p.x += p.dx; p.y += p.dy; p.life--; p.alpha = p.life / 30;
+        const p = particles[i]; drawNeonShape('circle', p.x, p.y, p.size, p.color, 0, p.alpha || 1); p.x += p.dx; p.y += p.dy; p.life--; p.alpha = Math.max(0, p.life / 30);
         if(p.life <= 0) particles.splice(i,1);
     }
 
-    // bullets update
+    // bullets update (player bullets)
     for(let i=bullets.length-1;i>=0;i--){
         const b = bullets[i]; b.x += b.dx; b.y += b.dy; drawNeonShape('circle', b.x, b.y, b.size, '#ff00ff'); createParticle(b.x,b.y,(Math.random()-0.5)*1,(Math.random()-0.5)*1,'#ff00ff',2,20);
 
         let killed = false;
         for(let j=enemies.length-1;j>=0;j--){
             const e = enemies[j]; const dist = Math.hypot(b.x - e.x, b.y - e.y);
-            if(dist < e.size + b.size){ enemies.splice(j,1); bullets.splice(i,1); addPoints(1);
+            if(dist < e.size + b.size){
+                enemies.splice(j,1);
+                bullets.splice(i,1);
+                addPoints(1);
                 for(let p=0;p<8;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*2+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
                 killed = true; break;
             }
         }
         if(killed) continue;
-        if(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) bullets.splice(i,1);
+        if(b.x < -50 || b.x > canvas.width + 50 || b.y < -50 || b.y > canvas.height + 50) bullets.splice(i,1);
     }
 
     // ai bullets update
@@ -349,25 +374,41 @@ function update(){
         b.x += b.dx; b.y += b.dy; drawNeonShape('circle', b.x, b.y, b.size, '#00ffff');
         for(let j=enemies.length-1;j>=0;j--){
             const e = enemies[j]; const dist = Math.hypot(b.x - e.x, b.y - e.y);
-            if(dist < e.size + b.size){ enemies.splice(j,1); aiBullets.splice(i,1); addPoints(1);
+            if(dist < e.size + b.size){
+                enemies.splice(j,1);
+                aiBullets.splice(i,1);
+                addPoints(1);
                 for(let p=0;p<8;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*2+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
                 break;
             }
         }
-        if(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) aiBullets.splice(i,1);
+        if(b.x < -50 || b.x > canvas.width + 50 || b.y < -50 || b.y > canvas.height + 50) aiBullets.splice(i,1);
     }
 
-    // enemies update
-    for(const e of enemies){
+    // enemies update + basic collision vs player
+    for(let ei = enemies.length - 1; ei >= 0; ei--){
+        const e = enemies[ei];
         const angle = Math.atan2(player.y - e.y, player.x - e.x);
-        e.x += Math.cos(angle) * e.speed; e.y += Math.sin(angle) * e.speed;
+        e.x += Math.cos(angle) * e.speed;
+        e.y += Math.sin(angle) * e.speed;
         drawNeonShape(e.shape, e.x, e.y, e.size, e.color);
+
+        // enemy hits player - simple collision (you could add HP later)
+        const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+        if(distToPlayer < e.size + player.size){
+            // push enemy away, spawn particles, and remove enemy
+            for(let p=0;p<10;p++){ const ang = Math.random()*Math.PI*2; const spd = Math.random()*3+1; createParticle(e.x,e.y,Math.cos(ang)*spd,Math.sin(ang)*spd,e.color,3,30); }
+            enemies.splice(ei,1);
+            // penalty for hitting player: lose some points (but not below 0)
+            points = Math.max(0, points - 2);
+            updatePoints();
+        }
     }
 
     requestAnimationFrame(update);
 }
 
-// initialize UI buttons with labels and handlers done earlier
+// initialize UI buttons with labels and handlers
 updatePoints();
 updateAllButtons();
 update(); // start game loop
