@@ -105,7 +105,7 @@ const enemyTypes=[
     {shape:'square',color:'#ffff00',size:20,speed:1.8}
 ];
 
-let baseSpawnInterval = 4000; // ms baseline
+let baseSpawnInterval = 2500; // ms baseline - 2.5 sec
 let lastSpawnTime = Date.now();
 let enemiesDefeated = 0;
 let gameStartTime = Date.now();
@@ -119,9 +119,9 @@ function getDynamicSpawnInterval(){
     const elapsedSeconds = (Date.now() - gameStartTime) / 1000; // seconds elapsed
     const upgradeFactor = totalUpgradesCount();
     // difficulty magnitude combines defeated enemies, upgrades, and elapsed time
-    const difficultyMagnitude = enemiesDefeated * 0.8 + upgradeFactor * 2 + elapsedSeconds * 0.7;
+    const difficultyMagnitude = enemiesDefeated * 0.5 + upgradeFactor * 3 + elapsedSeconds * 0.7;
     // shrink interval proportional to difficulty
-    let interval = baseSpawnInterval - difficultyMagnitude * 10; // tune multiplier for feeling
+    let interval = baseSpawnInterval - difficultyMagnitude * 8; // tune multiplier for feeling
     // if player bought many fireRate upgrades, they can kill faster; also ensure min interval
     const minInterval = 300; // never below this
     interval = Math.max(minInterval, interval);
