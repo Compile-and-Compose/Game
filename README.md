@@ -1,5 +1,0 @@
-# [GAME NAME]
-
-
-## Languages Used:
-- 
