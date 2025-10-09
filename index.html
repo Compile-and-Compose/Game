@@ -338,15 +338,47 @@ function showGameOver(){
 function hideGameOver(){ document.getElementById('gameOver').style.display = 'none'; }
 
 function restartGame(){
-    // reset core state but preserve upgrades
+    // reset everything — including upgrades
     points = 0; updatePoints();
     player.x = canvas.width/2; player.y = canvas.height/2;
     player.vx = player.vy = 0;
     player.health = player.maxHealth;
+
+    // reset upgrades
+    for (const key in upgrades) {
+        upgrades[key].count = 0;
+        upgrades[key].cost = {
+            speed: 10,
+            bullet: 15,
+            fireRate: 20,
+            turret: 50,
+            melee: 30,
+            multishot: 100,
+            ricochet: 75
+        }[key]; // reset each cost to its default
+    }
+
+    // reset player stats to base values
+    player.maxSpeed = 5.5;
+    player.accel = 0.4;
+    player.fireRate = 200;
+    player.turrets = 0;
+    player.turretTimers = [];
+    player.turretUpgrades = 0;
+    player.turretCooldown = 2000;
+    player.meleeRange = 50;
+    player.meleeCooldown = 5000;
+    player.multishot = 0;
+    bulletSize = 5;
+    totalUpgradesSpent = 0;
+
+    // clear entities
     enemies.length = 0; bullets.length = 0; aiBullets.length = 0; particles.length = 0;
     enemiesDefeated = 0; gameStartTime = Date.now(); lastSpawnTime = Date.now();
+    updateAllButtons();
     hideGameOver(); updateHealthUI();
 }
+
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 
 // Main game loop
