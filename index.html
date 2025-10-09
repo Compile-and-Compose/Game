@@ -164,9 +164,12 @@ function spawnEnemy(){
     if(enemies.length >= MAX_ENEMIES) return;
     const difficultyMetric = (enemiesDefeated)/5 + totalUpgradesCount()/2 + ((Date.now() - gameStartTime)/10000) * 0.45;
     const available = enemyTypes.slice(0,3);
-    if(difficultyMetric > 60) available.push(enemyTypes[3]);
-    if(difficultyMetric > 5000) available.push(enemyTypes[4]);
-    if(difficultyMetric > 700) available.push(enemyTypes[5]);
+    
+    if (difficultyMetric > 60) available.push(enemyTypes[3]);   // pentagon
+    if (difficultyMetric > 700) available.push(enemyTypes[5]);  // octagon
+    if (difficultyMetric > 5000) available.push(enemyTypes[4]); // hexagon
+    if (difficultyMetric > 8000) available.push(enemyTypes[6]); // nonagon
+    
     const type = available[Math.floor(Math.random()*available.length)];
     const edge = Math.random() < 0.5 ? 'horizontal' : 'vertical';
     let x,y;
