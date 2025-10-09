@@ -167,8 +167,8 @@ function spawnEnemy(){
     
     if (difficultyMetric > 60) available.push(enemyTypes[3]);   // pentagon
     if (difficultyMetric > 700) available.push(enemyTypes[5]);  // octagon
-    if (difficultyMetric > 5000) available.push(enemyTypes[4]); // hexagon
-    if (difficultyMetric > 6000) available.push(enemyTypes[6]); // nonagon
+    if (difficultyMetric > 3000) available.push(enemyTypes[4]); // hexagon
+    if (difficultyMetric > 4000) available.push(enemyTypes[6]); // nonagon
     
     const type = available[Math.floor(Math.random()*available.length)];
     const edge = Math.random() < 0.5 ? 'horizontal' : 'vertical';
