@@ -79,7 +79,7 @@ document.getElementById('testBtn').addEventListener('click', ()=>{ addPoints(250
 // Player object with health
 const player = {
     x: canvas.width/2, y: canvas.height/2,
-    vx: 0, vy: 0, maxSpeed: 5.5, accel: 0.275, friction: 0.03,
+    vx: 0, vy: 0, maxSpeed: 5.5, accel: 0.275, friction: 0.02,
     size: 20, fireRate: 200, lastShot: 0, angle: 0,
     turrets: 0, turretCooldown: 2000, turretTimers: [], turretUpgrades:0,
     meleeRange: 50, meleeCooldown: 5000, lastMelee:0, glow:0,
@@ -436,7 +436,7 @@ if (keys['ArrowDown'] || keys['s']) {
 }
 
 // rotation (turns left/right)
-let rotationSpeed = 0.05;
+let rotationSpeed = 0.08;
 const moving = Math.hypot(player.vx, player.vy) > 0.3;
 if (!moving) rotationSpeed *= 0.5;
 
